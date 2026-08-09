@@ -174,7 +174,15 @@ export function TodayPage() {
               return (
                 <article className="today-habit" key={habit.id}>
                   <button
-                    aria-label={`${checked ? "Desmarcar" : "Marcar"} ${habit.name}`}
+                    aria-label={`${
+                      habit.direction === "avoid"
+                        ? checked
+                          ? "Desmarcar evitado"
+                          : "Marcar como evitado"
+                        : checked
+                          ? "Desmarcar"
+                          : "Marcar"
+                    } ${habit.name}`}
                     aria-pressed={checked}
                     className={`today-check${checked ? " today-check--checked" : ""}`}
                     disabled={checkInMutation.isPending}
@@ -199,7 +207,9 @@ export function TodayPage() {
                   <div>
                     <h3>{habit.name}</h3>
                     <p>
-                      {habit.description ||
+                      {checked && habit.direction === "avoid"
+                        ? "Evitado"
+                        : habit.description ||
                         (habit.frequency === "daily"
                           ? "Cada día"
                           : "Una vez por semana")}

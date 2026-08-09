@@ -27,7 +27,7 @@ Conserva una herramienta personal serena, elegante y cálida:
 - Movimiento breve y funcional, eliminado cuando el usuario prefiere movimiento reducido.
 
 Evita degradados, negro puro, colores neón, emojis, ilustraciones decorativas, exceso de tarjetas,
-sombras dramáticas, navegación de panel genérico y animaciones celebratorias.
+sombras dramáticas, navegación de panel genérico y celebraciones invasivas o no reducibles.
 
 ## Flujo de trabajo
 

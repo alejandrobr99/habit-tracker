@@ -98,6 +98,11 @@ def patch_habit(
         )
     except habit_service.HabitNotFoundError as error:
         raise _habit_not_found() from error
+    except habit_service.HabitConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Habit direction cannot change after its first check-in",
+        ) from error
     return HabitRead.model_validate(habit)
 
 

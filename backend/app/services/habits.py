@@ -5,13 +5,14 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Habit, HabitCheckIn, HabitFrequency, HabitStatus
+from app.models import Habit, HabitCheckIn, HabitFrequency, HabitStatus, StreakRecovery
 from app.schemas import (
     HabitCreate,
     HabitUpdate,
     HabitWeeklySummary,
     WeeklySummaryRead,
 )
+from app.services import gamification
 
 
 class HabitNotFoundError(Exception):
@@ -20,6 +21,10 @@ class HabitNotFoundError(Exception):
 
 class ArchivedHabitError(Exception):
     """Raised when a new check-in is requested for an archived habit."""
+
+
+class HabitConflictError(Exception):
+    """Raised when a habit update would invalidate its history."""
 
 
 def list_habits(
@@ -63,7 +68,14 @@ def update_habit(
 ) -> Habit:
     """Apply a partial update to an existing habit."""
     habit = get_habit(db, habit_id)
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    values = payload.model_dump(exclude_unset=True)
+    if "direction" in values and values["direction"] != habit.direction:
+        has_check_in = db.scalar(
+            select(HabitCheckIn.id).where(HabitCheckIn.habit_id == habit_id).limit(1),
+        )
+        if has_check_in is not None:
+            raise HabitConflictError
+    for field, value in values.items():
         setattr(habit, field, value)
     habit.updated_at = datetime.now(UTC)
     db.commit()
@@ -105,6 +117,8 @@ def put_check_in(
         check_in_date=check_in_date,
     )
     db.add(check_in)
+    db.flush()
+    gamification.process_check_in(db, check_in)
     db.commit()
     db.refresh(check_in)
     return check_in, True
@@ -214,6 +228,14 @@ def _build_habit_summary(
         .order_by(HabitCheckIn.check_in_date)
     )
     all_dates = set(db.scalars(statement))
+    recovered_dates = set(
+        db.scalars(
+            select(StreakRecovery.recovered_date).where(
+                StreakRecovery.habit_id == habit.id,
+                StreakRecovery.recovered_date <= week_end,
+            ),
+        ),
+    )
     weekly_dates = sorted(
         check_in_date for check_in_date in all_dates if week_start <= check_in_date <= week_end
     )
@@ -224,7 +246,7 @@ def _build_habit_summary(
         completed_count=len(weekly_dates),
         target_count=7 if habit.frequency == HabitFrequency.DAILY else 1,
         current_streak=calculate_streak(
-            all_dates,
+            all_dates | recovered_dates,
             habit.frequency,
             as_of,
         ),

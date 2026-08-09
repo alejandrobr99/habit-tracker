@@ -4,6 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.routers.finance import router as finance_router
+from app.routers.gamification import recovery_router
+from app.routers.gamification import router as gamification_router
 from app.routers.habits import router as habits_router
 from app.schemas import HealthRead
 
@@ -21,6 +24,18 @@ app.add_middleware(
 )
 app.include_router(
     habits_router,
+    prefix=settings.api_prefix,
+)
+app.include_router(
+    finance_router,
+    prefix=settings.api_prefix,
+)
+app.include_router(
+    gamification_router,
+    prefix=settings.api_prefix,
+)
+app.include_router(
+    recovery_router,
     prefix=settings.api_prefix,
 )
 

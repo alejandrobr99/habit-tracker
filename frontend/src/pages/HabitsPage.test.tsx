@@ -10,6 +10,7 @@ const habit = {
   id: 7,
   name: "Leer diez páginas",
   description: "Antes de dormir",
+  direction: "build",
   frequency: "daily",
   status: "active",
   color: "#71806d",
@@ -86,5 +87,26 @@ describe("HabitsPage", () => {
         expect.objectContaining({ method: "PUT" }),
       );
     });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Recuperar ayer" }),
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        `http://localhost:8000/api/v1/habits/${habit.id}/streak-recoveries`,
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringMatching(
+            /^\{"recovered_date":"\d{4}-\d{2}-\d{2}"\}$/,
+          ),
+        }),
+      );
+    });
+    expect(
+      await screen.findByText(
+        "Ayer quedó recuperado para la continuidad de tu racha.",
+      ),
+    ).toBeInTheDocument();
   });
 });

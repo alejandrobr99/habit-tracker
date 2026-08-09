@@ -21,6 +21,7 @@ const colors = [
 const emptyHabit: HabitInput = {
   name: "",
   description: null,
+  direction: "build",
   frequency: "daily",
   color: colors[0].value,
 };
@@ -50,6 +51,7 @@ export function HabitDialog({
           ? {
               name: habit.name,
               description: habit.description,
+              direction: habit.direction,
               frequency: habit.frequency,
               color: habit.color,
             }
@@ -117,6 +119,29 @@ export function HabitDialog({
                 value={form.description ?? ""}
               />
             </div>
+
+            <fieldset className="field fieldset">
+              <legend>Intención</legend>
+              <div className="segmented">
+                {(["build", "avoid"] as const).map((direction) => (
+                  <label key={direction}>
+                    <input
+                      checked={form.direction === direction}
+                      name="direction"
+                      onChange={() => setForm({ ...form, direction })}
+                      type="radio"
+                      value={direction}
+                    />
+                    <span>
+                      {direction === "build" ? "Construir" : "Evitar"}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <small className="field-help">
+                En ambos casos, el registro confirma el avance que elegiste.
+              </small>
+            </fieldset>
 
             <fieldset className="field fieldset">
               <legend>Frecuencia</legend>

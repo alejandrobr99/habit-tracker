@@ -15,13 +15,14 @@ productividad genérica ni en un sistema contable.
 - Ofrecer una vista diaria serena, legible y útil en menos de un minuto.
 - Mantener hábitos y finanzas como dominios separados dentro de una experiencia coherente.
 - Priorizar captura rápida, estados explícitos y retroalimentación sobria.
+- Hacer visible el progreso mediante gamificación opcional, privada y no moralizante.
 - Diseñar contratos que permitan evolucionar backend y frontend de forma independiente.
 - Hacer de las especificaciones la fuente de verdad antes de implementar.
 
 ## No objetivos
 
 - Colaboración, cuentas familiares o espacios compartidos.
-- Gamificación, comparaciones sociales, puntos o recompensas.
+- Comparaciones sociales, clasificaciones públicas o recompensas con valor monetario real.
 - Sincronización bancaria, asesoría financiera o contabilidad fiscal.
 - Calendario completo, gestión de proyectos o automatizaciones externas en la primera etapa.
 - Aplicaciones móviles nativas y funcionamiento sin conexión.
@@ -35,6 +36,13 @@ productividad genérica ni en un sistema contable.
 5. **Privacidad local:** minimizar datos personales y no incorporar telemetría sin una decisión.
 6. **Sencillez deliberada:** elegir código directo y robusto antes que abstracciones o
    infraestructura anticipada.
+7. **Motivación sin presión:** puntos, niveles, insignias, desafíos, recompensas personales y
+   recuperación de rachas reconocen acciones elegidas; nunca califican el carácter ni usan culpa,
+   urgencia artificial o pérdida como castigo.
+
+La gamificación se define en `specs/003-gamification.md`. Es privada para el usuario implícito,
+puede ignorarse sin bloquear hábitos o finanzas y usa celebraciones breves que se reducen o
+eliminan con la preferencia de movimiento reducido.
 
 La toma de decisiones técnicas se rige por `specs/constitution.md`. En particular, solo se
 parametrizan valores que varían por entorno o instalación; las reglas de producto permanecen como
@@ -56,7 +64,8 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
 
 ### Identidad y tiempo
 
-- Todos los recursos tienen `id` estable, `created_at` y `updated_at`.
+- Todos los recursos persistidos tienen `id` estable y `created_at`; los recursos mutables también
+  tienen `updated_at`.
 - El único usuario inicial es implícito; no se expone autenticación hasta especificarla.
 - `date` representa el día local elegido por el usuario.
 - El backend conserva instantes en UTC y el frontend presenta la zona configurada.
@@ -83,7 +92,8 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
 
 - `/`: hoy, con resumen de hábitos y acceso directo a finanzas.
 - `/habitos`: gestión e historial de hábitos.
-- `/finanzas`: shell inicial del dominio financiero.
+- `/finanzas`: movimientos, presupuestos y resumen mensual.
+- `/progreso`: nivel, insignias, desafíos y recompensas personales.
 - Ajustes globales solo se añaden cuando exista una necesidad definida.
 
 ## Estados globales de interfaz
@@ -95,6 +105,8 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
 - **Sin conexión:** conservar la pantalla y explicar que no se guardarán cambios.
 - **Guardando:** deshabilitar solo el control afectado y prevenir envíos duplicados.
 - **Éxito:** reflejar el resultado en la interfaz; evitar notificaciones redundantes.
+- **Celebración:** reconocimiento breve y descartable; no bloquea la siguiente acción y se
+  convierte en confirmación estática con `prefers-reduced-motion`.
 
 ## Criterios de aceptación
 
@@ -102,6 +114,8 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
 - Cada pantalla implementada contempla carga, vacío, error y contenido.
 - La interfaz es operable con teclado y conserva foco visible.
 - Los contratos de cada dominio respetan las convenciones de identidad, tiempo, errores y dinero.
+- La gamificación no publica actividad, no exige participación y no usa montos financieros ni
+  cantidad de movimientos como señal de mérito.
 - Ninguna funcionalidad fuera de alcance aparece como activa; las funciones futuras se etiquetan
   como no disponibles o se omiten.
 - Una modificación funcional comienza actualizando o creando una especificación numerada.
@@ -117,6 +131,12 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
   pruebas y optimización.
 - **D-000-07:** evitar sobres de colección y errores personalizados hasta que exista una necesidad
   concreta del cliente.
+- **D-000-08:** ofrecer gamificación privada y opcional como capa de retroalimentación, sin
+  comparaciones sociales ni bloqueos sobre las funciones principales.
+- **D-000-09:** limitar la gamificación financiera a configurar un presupuesto y completar una
+  revisión semanal, sin premiar montos, saldos ni cantidad de movimientos.
+- **D-000-10:** exigir `updated_at` solo en recursos mutables y conservar eventos inmutables con
+  `created_at`.
 
 ## Preguntas abiertas
 

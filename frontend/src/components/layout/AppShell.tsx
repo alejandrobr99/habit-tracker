@@ -1,6 +1,7 @@
 import {
   CalendarCheck,
   CircleDollarSign,
+  Gauge,
   ListChecks,
   Sprout,
 } from "lucide-react";
@@ -10,6 +11,7 @@ const navigation = [
   { label: "Hoy", path: "/", icon: CalendarCheck },
   { label: "Hábitos", path: "/habitos", icon: ListChecks },
   { label: "Finanzas", path: "/finanzas", icon: CircleDollarSign },
+  { label: "Progreso", path: "/progreso", icon: Gauge },
 ];
 
 export function AppShell() {
@@ -18,7 +20,7 @@ export function AppShell() {
       <aside className="sidebar">
         <NavLink aria-label="Inicio" className="brand" to="/">
           <span className="brand__mark">
-            <Sprout aria-hidden="true" size={20} strokeWidth={1.8} />
+            <Sprout aria-hidden="true" size={24} strokeWidth={1.7} />
           </span>
           <span>
             <strong>Pleno</strong>
@@ -36,7 +38,7 @@ export function AppShell() {
               key={path}
               to={path}
             >
-              <Icon aria-hidden="true" size={19} strokeWidth={1.8} />
+              <Icon aria-hidden="true" size={22} strokeWidth={1.7} />
               {label}
             </NavLink>
           ))}
@@ -46,6 +48,18 @@ export function AppShell() {
           Un lugar sereno para cuidar lo que importa.
         </p>
       </aside>
+
+      <header className="mobile-header">
+        <NavLink aria-label="Inicio" className="mobile-brand" to="/">
+          <span className="brand__mark">
+            <Sprout aria-hidden="true" size={22} strokeWidth={1.7} />
+          </span>
+          <span>
+            <strong>Pleno</strong>
+            <small>Agenda personal</small>
+          </span>
+        </NavLink>
+      </header>
 
       <main className="main-content">
         <Outlet />
@@ -61,7 +75,7 @@ export function AppShell() {
             key={path}
             to={path}
           >
-            <Icon aria-hidden="true" size={20} />
+            <Icon aria-hidden="true" size={22} strokeWidth={1.8} />
             <span>{label}</span>
           </NavLink>
         ))}

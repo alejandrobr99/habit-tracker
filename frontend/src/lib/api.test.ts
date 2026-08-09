@@ -12,6 +12,7 @@ describe("plannerApi", () => {
       id: 1,
       name: "Caminar",
       description: null,
+      direction: "build",
       frequency: "daily",
       status: "active",
       color: "#71806d",
@@ -29,6 +30,7 @@ describe("plannerApi", () => {
     await plannerApi.createHabit({
       name: "Caminar",
       description: null,
+      direction: "build",
       frequency: "daily",
       color: "#71806d",
     });
@@ -40,6 +42,7 @@ describe("plannerApi", () => {
         body: JSON.stringify({
           name: "Caminar",
           description: null,
+          direction: "build",
           frequency: "daily",
           color: "#71806d",
         }),

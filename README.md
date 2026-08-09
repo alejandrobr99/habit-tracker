@@ -1,8 +1,8 @@
 # Personal Planner
 
-Planificador personal centrado en hábitos y finanzas, construido con una metodología guiada por
-especificaciones. La primera versión incluye un habit tracker funcional y una base visual preparada
-para ampliar el producto.
+Planificador personal centrado en hábitos, finanzas y progreso privado, construido con una
+metodología guiada por especificaciones. La primera versión permite registrar hábitos y movimientos,
+administrar presupuestos mensuales y reconocer avances sin comparaciones sociales.
 
 ## Estructura del monorepo
 
@@ -20,6 +20,8 @@ Las especificaciones vigentes son:
 - `specs/000-product-foundation.md`: alcance, convenciones y arquitectura del producto.
 - `specs/001-habit-tracker.md`: primera funcionalidad completa.
 - `specs/002-finance-shell.md`: estructura inicial del módulo financiero.
+- `specs/003-gamification.md`: progreso, insignias, desafíos y recompensas privadas.
+- `specs/004-finance-mvp.md`: movimientos, categorías, presupuestos y resumen mensual.
 - `specs/design-system.md`: lenguaje visual, componentes y accesibilidad.
 - `specs/development-readiness.md`: controles mínimos y decisiones diferidas.
 
@@ -82,3 +84,19 @@ npm run build
 
 La integración continua repite estos controles y comprueba que la migración de Alembic pueda crear
 el esquema desde cero.
+
+## Prueba local en cinco minutos
+
+Inicia el backend y el frontend en dos terminales con los comandos anteriores. Después abre
+`http://localhost:5173` y recorre este flujo:
+
+1. En **Hábitos**, crea un hábito de tipo “Construir” o “Evitar” y registra el cumplimiento de hoy.
+2. En **Progreso**, comprueba el XP, crea un desafío semanal y configura una recompensa personal.
+3. En **Finanzas**, elige COP, USD o EUR como moneda base.
+4. Crea una categoría de gasto y otra de ingreso, y registra un movimiento de cada tipo.
+5. Configura un presupuesto para la categoría de gasto y verifica el resumen del mes.
+6. Regresa a **Progreso** para revisar la insignia y marcar la revisión financiera semanal.
+
+Los datos se guardan en `backend/personal_planner.db`. Para probar con una base aislada, define
+`PLANNER_DATABASE_URL=sqlite:///./planner_test.db` antes de ejecutar Alembic y Uvicorn. La moneda
+base solo puede cambiar mientras no existan movimientos ni presupuestos.

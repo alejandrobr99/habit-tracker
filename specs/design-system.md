@@ -13,6 +13,7 @@ terrosos, no de decoración nostálgica. Se evita la estética genérica de pane
 3. **Jerarquía editorial:** títulos expresivos y datos densos en tipografía funcional.
 4. **Calidez contenida:** neutros cálidos con un único acento dominante.
 5. **Accesibilidad:** contraste AA, teclado completo y significado independiente del color.
+6. **Progreso sin juicio:** reconocer constancia y recuperación sin culpa, comparación ni urgencia.
 
 ## Tokens
 
@@ -39,11 +40,13 @@ texto. Un tema oscuro queda fuera de alcance hasta contar con su propia paleta v
 
 ### Tipografía
 
-- **Títulos:** `"Source Serif 4", "Iowan Old Style", Georgia, serif`.
-- **Interfaz y datos:** `"Inter", "Avenir Next", system-ui, sans-serif`.
-- **Escala:** 12, 14, 16, 20, 26, 36 px.
-- **Cuerpo:** 16 px, altura de línea 1.55.
-- **Etiquetas:** 14 px, peso 600; evitar mayúsculas sostenidas.
+- **Títulos:** `"Bodoni 72", Didot, "Iowan Old Style", Georgia, serif`.
+- **Interfaz y datos:** `"Avenir Next", Inter, system-ui, sans-serif`.
+- **Escala fluida:** 13–14, 15–17, 17–19, 22–28, 32–44 y 48–76 px.
+- **Cuerpo:** `clamp(17px, 0.3vw + 16px, 19px)`, altura de línea 1.6.
+- **Etiquetas:** 15–17 px, peso 600; evitar mayúsculas sostenidas.
+- Los títulos usan contraste editorial, peso contenido y espaciado ajustado; nunca sacrifican
+  legibilidad por ornamentación.
 - **Números financieros:** variantes tabulares cuando estén disponibles.
 
 Las fuentes web son opcionales: la pila local debe conservar jerarquía y rendimiento.
@@ -52,7 +55,7 @@ Las fuentes web son opcionales: la pila local debe conservar jerarquía y rendim
 
 La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 
-- Contenido principal: máximo 1120 px.
+- Contenido principal: ocupa el ancho disponible con máximo de 1480 px y márgenes fluidos.
 - Texto largo: máximo 68 caracteres por línea.
 - Control interactivo: mínimo 44 × 44 px.
 - Separación entre secciones: 48 px en escritorio y 32 px en móvil.
@@ -66,8 +69,12 @@ La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 
 ## Layout
 
-- Shell con navegación lateral compacta desde 960 px.
-- Bajo 960 px, encabezado superior y navegación accesible sin ocultar el destino actual.
+- Shell con navegación lateral de 260 a 320 px desde 821 px, escalada según el viewport.
+- Bajo 821 px, encabezado superior de marca y navegación inferior accesible sin ocultar el destino
+  actual.
+- El shell usa como mínimo toda la altura dinámica del viewport y evita franjas vacías laterales.
+- El contenido y sus márgenes responden de forma fluida al ancho disponible sin desplazamiento
+  horizontal.
 - Rejilla de 12 columnas en escritorio y una columna en móvil.
 - Las páginas comienzan con título, contexto breve y, solo si corresponde, una acción primaria.
 - Las métricas se alinean por línea base; no usar mosaicos de tamaños arbitrarios.
@@ -107,6 +114,18 @@ La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 - Valores negativos incluyen signo y texto contextual.
 - Las cifras de demostración llevan una etiqueta persistente, no solo un aviso temporal.
 
+### Gamificación
+
+- XP, nivel e insignias son información secundaria; nunca desplazan la tarea principal.
+- Los desafíos muestran objetivo, progreso, periodo y estado sin cuenta regresiva alarmista.
+- Las recompensas personales usan el nombre escrito por el usuario y no simulan valor monetario.
+- Una racha interrumpida ofrece continuidad o recuperación con texto neutral; no usa pérdida visual,
+  colores destructivos ni mensajes de culpa.
+- Las celebraciones se reservan para nivel, insignia, desafío o recompensa alcanzados. Duran como
+  máximo 600 ms, pueden descartarse y no bloquean navegación ni entrada.
+- Con `prefers-reduced-motion`, la celebración es una confirmación estática sin confeti,
+  desplazamiento ni transformación.
+
 ## Iconografía e imágenes
 
 Usar iconos lineales de 18–20 px con trazo consistente. Cada icono de acción requiere nombre
@@ -118,6 +137,8 @@ estilos mezclados.
 - Español claro, directo y respetuoso.
 - Frases breves y verbos concretos.
 - Evitar tono moralizante: usar “Pendiente”, no “Fallaste”.
+- Evitar presión o vergüenza: usar “Puedes continuar hoy”, no “Perdiste tu progreso”.
+- No atribuir virtud, disciplina, salud ni responsabilidad financiera a puntos, rachas o saldos.
 - Explicar cómo recuperarse de un error.
 - Fechas legibles en UI y formato ISO en contratos.
 
@@ -125,7 +146,8 @@ estilos mezclados.
 
 - Transiciones funcionales entre 120 y 220 ms.
 - Animar opacidad y transformación; evitar animar layout.
-- Sin celebraciones, rebotes ni movimiento continuo.
+- Las celebraciones permitidas son breves, no repetitivas y nunca usan rebotes ni movimiento
+  continuo.
 - Con movimiento reducido, eliminar transiciones no esenciales.
 
 ## Estados y accesibilidad
@@ -143,6 +165,11 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
 - Teclado y foco permiten completar todos los flujos.
 - La interfaz sigue siendo comprensible en escala de grises.
 - `prefers-reduced-motion` elimina el movimiento no esencial.
+- La tipografía, navegación y espaciado escalan sin saltos entre 320 y 1440 px.
+- La marca, los destinos principales y el destino activo siguen siendo legibles en todos los
+  tamaños soportados.
+- Una celebración no bloquea la acción siguiente, puede descartarse y tiene alternativa estática.
+- Rachas, XP, insignias y finanzas usan lenguaje neutral y siguen siendo comprensibles sin color.
 - No aparecen degradados, negro puro, emojis ni patrones de panel genérico.
 
 ## Decisiones registradas
@@ -152,3 +179,11 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
 - **D-DS-03:** usar bordes antes que sombras para expresar agrupación.
 - **D-DS-04:** no ofrecer tema oscuro en la primera etapa.
 - **D-DS-05:** mantener el movimiento breve, funcional y reducible.
+- **D-DS-06:** permitir celebraciones puntuales de hasta 600 ms solo para logros explícitos, con
+  alternativa estática y sin interrupción del flujo.
+- **D-DS-07:** presentar la gamificación como contexto secundario y privado, sin señales de pérdida,
+  comparación social o juicio personal.
+- **D-DS-08:** adoptar una jerarquía editorial fluida con serif de alto contraste, cuerpo mínimo de
+  17 px y navegación ampliada para mejorar legibilidad y presencia visual.
+- **D-DS-09:** hacer que el shell ocupe el viewport disponible, con barra lateral fluida en
+  escritorio y encabezado de marca más navegación inferior en móvil.

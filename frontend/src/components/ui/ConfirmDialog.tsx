@@ -4,6 +4,7 @@ import { Button } from "./Button";
 
 interface ConfirmDialogProps {
   children: React.ReactNode;
+  confirmLabel?: string;
   description: string;
   onConfirm: () => void;
   title: string;
@@ -11,6 +12,7 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({
   children,
+  confirmLabel = "Archivar",
   description,
   onConfirm,
   title,
@@ -29,7 +31,7 @@ export function ConfirmDialog({
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
               <Button onClick={onConfirm} variant="danger">
-                Archivar
+                {confirmLabel}
               </Button>
             </AlertDialog.Action>
           </div>

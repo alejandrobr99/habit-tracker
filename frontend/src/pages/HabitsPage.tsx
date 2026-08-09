@@ -7,6 +7,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  RotateCcw,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -15,7 +16,7 @@ import { Button } from "../components/ui/Button";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { StatusPanel } from "../components/ui/StatusPanel";
 import { HabitDialog } from "../features/habits/HabitDialog";
-import { plannerApi } from "../lib/api";
+import { ApiError, plannerApi } from "../lib/api";
 import {
   formatShortDate,
   formatShortDay,
@@ -27,10 +28,18 @@ import type { HabitInput } from "../types/planner";
 
 export function HabitsPage() {
   const [week, setWeek] = useState(() => startOfWeek());
+  const [recoveryMessage, setRecoveryMessage] = useState<{
+    habitId: number;
+    kind: "error" | "success";
+    text: string;
+  } | null>(null);
   const queryClient = useQueryClient();
   const weekKey = toDateKey(week);
   const weekDays = getWeekDays(week);
   const todayKey = toDateKey(new Date());
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = toDateKey(yesterday);
 
   const habitsQuery = useQuery({
     queryKey: ["habits"],
@@ -88,6 +97,34 @@ export function HabitsPage() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["weekly-summary"] });
+    },
+  });
+
+  const recoveryMutation = useMutation({
+    mutationFn: (habitId: number) =>
+      plannerApi.createStreakRecovery(habitId, yesterdayKey),
+    onSuccess: async (_, habitId) => {
+      setRecoveryMessage({
+        habitId,
+        kind: "success",
+        text: "Ayer quedó recuperado para la continuidad de tu racha.",
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["weekly-summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["progress"] }),
+        queryClient.invalidateQueries({ queryKey: ["badges"] }),
+      ]);
+    },
+    onError: (error, habitId) => {
+      const recoverable = error instanceof ApiError
+        && (error.status === 409 || error.status === 422);
+      setRecoveryMessage({
+        habitId,
+        kind: "error",
+        text: recoverable
+          ? "Ayer no está disponible para recuperación. Puedes continuar con el registro de hoy."
+          : "No pudimos recuperar ayer. Inténtalo nuevamente.",
+      });
     },
   });
 
@@ -250,6 +287,28 @@ export function HabitsPage() {
                       {summary?.completed_count ?? 0} de{" "}
                       {summary?.target_count ?? 0} esta semana
                     </p>
+                    {habit.frequency === "daily" && (
+                      <button
+                        className="recovery-action"
+                        disabled={recoveryMutation.isPending}
+                        onClick={() => {
+                          setRecoveryMessage(null);
+                          recoveryMutation.mutate(habit.id);
+                        }}
+                        type="button"
+                      >
+                        <RotateCcw aria-hidden="true" size={14} />
+                        Recuperar ayer
+                      </button>
+                    )}
+                    {recoveryMessage?.habitId === habit.id && (
+                      <p
+                        className={`recovery-message recovery-message--${recoveryMessage.kind}`}
+                        role={recoveryMessage.kind === "error" ? "alert" : "status"}
+                      >
+                        {recoveryMessage.text}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -257,11 +316,16 @@ export function HabitsPage() {
                   {weekDays.map((day) => {
                     const date = toDateKey(day);
                     const checked = completedDates.has(date);
+                    const action = habit.direction === "avoid"
+                      ? checked
+                        ? "Desmarcar evitado"
+                        : "Marcar como evitado"
+                      : checked
+                        ? "Desmarcar"
+                        : "Marcar";
                     return (
                       <button
-                        aria-label={`${checked ? "Desmarcar" : "Marcar"} ${
-                          habit.name
-                        } el ${formatShortDate(day)}`}
+                        aria-label={`${action} ${habit.name} el ${formatShortDate(day)}`}
                         aria-pressed={checked}
                         className={`check-button${
                           checked ? " check-button--checked" : ""
