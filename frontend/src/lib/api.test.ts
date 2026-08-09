@@ -46,6 +46,7 @@ describe("plannerApi", () => {
           frequency: "daily",
           color: "#71806d",
         }),
+        signal: expect.any(AbortSignal),
       }),
     );
   });

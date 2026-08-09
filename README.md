@@ -46,10 +46,20 @@ make setup
 make dev
 ```
 
-`make setup` instala dependencias y aplica las migraciones. `make dev` inicia backend y frontend
-en paralelo con recarga automática. La aplicación queda disponible en `http://localhost:5173` y
-la documentación de la API en `http://localhost:8000/docs`. Usa `Ctrl+C` para detener ambos
-procesos.
+`make setup` instala dependencias y aplica las migraciones. `make dev` comprueba que los puertos
+estén libres e inicia backend y frontend en paralelo con recarga automática. La aplicación queda
+disponible en `http://127.0.0.1:5173` y la documentación de la API en
+`http://127.0.0.1:8000/docs`. Usa `Ctrl+C` para detener ambos procesos.
+
+Los puertos y hosts son parametrizables:
+
+```bash
+make dev BACKEND_PORT=8100 FRONTEND_PORT=5100
+make stop
+```
+
+`make stop` termina únicamente los procesos que escuchan en los puertos configurados. El frontend
+también admite `VITE_API_BASE_URL` y `VITE_API_TIMEOUT_MS`; consulta `frontend/environment.example`.
 
 Para validar cambios:
 
@@ -61,6 +71,7 @@ Otros comandos útiles:
 
 ```bash
 make help       # Lista todos los comandos
+make stop       # Libera los puertos locales configurados
 make test       # Pruebas de backend y frontend
 make lint       # Ruff y Oxlint
 make format     # Formatea Python con Ruff
@@ -119,8 +130,8 @@ el esquema desde cero.
 
 ## Prueba local en cinco minutos
 
-Inicia el backend y el frontend en dos terminales con los comandos anteriores. Después abre
-`http://localhost:5173` y recorre este flujo:
+Inicia el backend y el frontend con los comandos anteriores. Después abre
+`http://127.0.0.1:5173` y recorre este flujo:
 
 1. En **Hábitos**, crea un hábito de tipo “Construir” o “Evitar” y registra el cumplimiento de hoy.
 2. En **Progreso**, comprueba el XP, crea un desafío semanal y configura una recompensa personal.

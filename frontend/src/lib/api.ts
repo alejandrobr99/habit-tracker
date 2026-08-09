@@ -25,6 +25,11 @@ import type {
 const API_BASE = (
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
 ).replace(/\/$/, "");
+const configuredTimeout = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000");
+const API_TIMEOUT_MS =
+  Number.isFinite(configuredTimeout) && configuredTimeout > 0
+    ? configuredTimeout
+    : 10_000;
 
 export class ApiError extends Error {
   readonly status: number;
@@ -45,6 +50,7 @@ async function request<T>(
 ): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
+    signal: options?.signal ?? AbortSignal.timeout(API_TIMEOUT_MS),
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
