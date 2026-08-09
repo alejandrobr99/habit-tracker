@@ -223,7 +223,7 @@ h1 {
 }
 
 .button--primary:hover:not(:disabled) {
-  background: #3b3e36;
+  background: var(--sage-dark);
 }
 
 .button--secondary {
@@ -796,7 +796,7 @@ h1 {
 
 .coming-badge {
   padding: 6px 10px;
-  border: 1px solid #ddc5ba;
+  border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--clay-soft);
   color: var(--clay-dark);
@@ -1557,7 +1557,7 @@ p {
 }
 
 .sidebar {
-  background: #efede6;
+  background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -1730,12 +1730,12 @@ p {
 }
 
 .button--primary {
-  background: var(--sage-dark);
+  background: var(--sage);
   color: white;
 }
 
 .button--primary:hover {
-  background: #495646;
+  background: var(--sage-dark);
 }
 
 .button--secondary {
@@ -2311,7 +2311,7 @@ p {
 
 .coming-badge {
   background: var(--clay-soft);
-  border: 1px solid #dec4b9;
+  border: 1px solid var(--border);
   border-radius: 99px;
   color: var(--clay-dark);
   font-size: 10px;
@@ -2782,8 +2782,8 @@ body {
 }
 
 .brand__mark {
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 3.6rem;
+  height: 3.6rem;
   flex: 0 0 auto;
   background: var(--sage);
   color: var(--surface);
@@ -2798,7 +2798,7 @@ body {
 .brand strong,
 .mobile-brand strong {
   font-family: var(--font-display);
-  font-size: clamp(1.75rem, 1.5vw, 2.15rem);
+  font-size: clamp(1.95rem, 1.7vw, 2.4rem);
   font-weight: 500;
   letter-spacing: -0.035em;
   line-height: 0.95;
@@ -2819,9 +2819,9 @@ body {
 }
 
 .nav-link {
-  min-height: 3.5rem;
-  gap: 0.9rem;
-  padding: 0.85rem 1rem;
+  min-height: 3.75rem;
+  gap: 1rem;
+  padding: 0.95rem 1.1rem;
   border-radius: var(--radius-md);
   font-size: var(--font-size-nav);
   font-weight: 600;
@@ -2877,7 +2877,7 @@ h1 {
 
 h2 {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 2.5vw, 3rem);
+  font-size: clamp(2.25rem, 2.7vw, 3.25rem);
   font-weight: 500;
   letter-spacing: -0.035em;
   line-height: 1.05;
@@ -2885,7 +2885,7 @@ h2 {
 
 h3 {
   font-family: var(--font-display);
-  font-size: clamp(1.45rem, 1.4vw, 1.8rem);
+  font-size: clamp(1.6rem, 1.55vw, 2rem);
   font-weight: 500;
   line-height: 1.15;
 }
@@ -2905,8 +2905,8 @@ h3 {
 }
 
 .button {
-  min-height: 3rem;
-  padding-inline: 1.25rem;
+  min-height: 3.25rem;
+  padding-inline: 1.4rem;
   font-size: var(--font-size-label);
 }
 
@@ -2920,8 +2920,8 @@ h3 {
 .field textarea,
 .finance-toolbar input,
 .budget-row input {
-  min-height: 3rem;
-  font-size: 1rem;
+  min-height: 3.25rem;
+  font-size: 1.0625rem;
 }
 
 .field-help,
@@ -2940,7 +2940,7 @@ h3 {
 
 @media (max-width: 1100px) {
   :root {
-    --sidebar-width: 16.25rem;
+    --sidebar-width: 17.5rem;
   }
 
   .page,
@@ -2959,11 +2959,11 @@ h3 {
     top: 0;
     z-index: 9;
     display: flex;
-    min-height: 4.75rem;
+    min-height: 5rem;
     align-items: center;
     padding: 0.75rem clamp(1.125rem, 4vw, 2rem);
     border-bottom: 1px solid var(--border);
-    background: rgb(252 250 245 / 94%);
+    background: rgb(249 248 244 / 94%);
     backdrop-filter: blur(12px);
   }
 
@@ -2974,30 +2974,30 @@ h3 {
   }
 
   .mobile-brand .brand__mark {
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 3rem;
+    height: 3rem;
   }
 
   .mobile-brand strong {
     display: block;
-    font-size: 1.65rem;
+    font-size: 1.85rem;
   }
 
   .mobile-brand small {
     display: block;
     margin-top: 0.2rem;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
   }
 
   .main-content {
-    min-height: calc(100dvh - 4.75rem);
+    min-height: calc(100dvh - 5rem);
     margin-left: 0;
     padding-bottom: 5.5rem;
   }
 
   .mobile-nav {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    min-height: 4.75rem;
+    min-height: 5rem;
     padding: 0.55rem max(0.75rem, env(safe-area-inset-left))
       calc(0.55rem + env(safe-area-inset-bottom))
       max(0.75rem, env(safe-area-inset-right));
@@ -3005,11 +3005,11 @@ h3 {
 
   .mobile-nav__link {
     min-width: 0;
-    min-height: 3.5rem;
+    min-height: 3.75rem;
     gap: 0.3rem;
     justify-content: center;
     padding: 0.3rem;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 650;
   }
 
@@ -3026,7 +3026,7 @@ h3 {
 
 @media (max-width: 580px) {
   :root {
-    --font-size-title: clamp(2.75rem, 15vw, 3.6rem);
+    --font-size-title: clamp(3rem, 16vw, 3.9rem);
   }
 
   .page,

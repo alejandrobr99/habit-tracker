@@ -19,8 +19,8 @@ Si falta un estado o comportamiento, actualiza la especificación antes de inven
 
 Conserva una herramienta personal serena, elegante y cálida:
 
-- Fondos marfil mineral, superficies claras y texto carbón.
-- Marrón terroso como único acento principal.
+- Fondos piedra cálida, superficies claras y texto carbón oliváceo.
+- Verde profundo y desaturado como único acento principal.
 - Serif editorial solo para títulos; sans serif para controles y datos.
 - Bordes sutiles antes que sombras; radios moderados y espacio generoso.
 - Una acción primaria por región y jerarquía de lectura evidente.
@@ -41,8 +41,8 @@ sombras dramáticas, navegación de panel genérico y celebraciones invasivas o 
 
 ## Reglas de composición
 
-- Limita el contenido a 1120 px y el texto largo a 68 caracteres por línea.
-- Mantén controles de al menos 44 × 44 px.
+- Limita el contenido a 1480 px y el texto largo a 68 caracteres por línea.
+- Mantén controles de al menos 48 × 48 px.
 - No uses color como único indicador.
 - No ocultes una función esencial detrás de hover.
 - Los controles no disponibles deben parecerlo y explicar su estado en texto visible.

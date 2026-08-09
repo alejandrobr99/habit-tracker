@@ -21,19 +21,19 @@ terrosos, no de decoración nostálgica. Se evita la estética genérica de pane
 
 | Token | Claro | Uso |
 | --- | --- | --- |
-| `canvas` | `#F5F1E8` | Fondo general marfil mineral |
-| `surface` | `#FCFAF5` | Tarjetas, paneles y formularios |
+| `canvas` | `#EFEEE9` | Fondo general piedra cálida |
+| `surface` | `#F9F8F4` | Tarjetas, paneles y formularios |
 | `surface-raised` | `#FFFFFF` | Superficie elevada puntual |
-| `ink` | `#26241F` | Texto principal |
-| `ink-muted` | `#6E695F` | Texto secundario |
-| `line` | `#D9D2C5` | Bordes y divisores |
-| `accent` | `#7A5C3E` | Acción principal y selección |
-| `accent-hover` | `#62482F` | Interacción sobre acento |
-| `accent-soft` | `#E9DED0` | Fondo seleccionado |
-| `success` | `#536B57` | Confirmación y progreso |
-| `warning` | `#956F35` | Atención no destructiva |
-| `danger` | `#934E45` | Error y acción destructiva |
-| `focus` | `#315C7A` | Anillo de foco de alto contraste |
+| `ink` | `#20231F` | Texto principal carbón oliváceo |
+| `ink-muted` | `#5F635D` | Texto secundario |
+| `line` | `#CBC8BF` | Bordes y divisores |
+| `accent` | `#3F4C43` | Acción principal y selección |
+| `accent-hover` | `#303A33` | Interacción sobre acento |
+| `accent-soft` | `#E1E5DF` | Fondo seleccionado |
+| `success` | `#4F6254` | Confirmación y progreso |
+| `warning` | `#806A48` | Atención no destructiva |
+| `danger` | `#7D4D49` | Error y acción destructiva |
+| `focus` | `#315A73` | Anillo de foco de alto contraste |
 
 No usar negro puro, degradados ni colores neón. Los estados combinan color, iconografía sobria y
 texto. Un tema oscuro queda fuera de alcance hasta contar con su propia paleta verificada.
@@ -42,9 +42,9 @@ texto. Un tema oscuro queda fuera de alcance hasta contar con su propia paleta v
 
 - **Títulos:** `"Bodoni 72", Didot, "Iowan Old Style", Georgia, serif`.
 - **Interfaz y datos:** `"Avenir Next", Inter, system-ui, sans-serif`.
-- **Escala fluida:** 13–14, 15–17, 17–19, 22–28, 32–44 y 48–76 px.
-- **Cuerpo:** `clamp(17px, 0.3vw + 16px, 19px)`, altura de línea 1.6.
-- **Etiquetas:** 15–17 px, peso 600; evitar mayúsculas sostenidas.
+- **Escala fluida:** 14–15, 16–18, 18–20, 24–30, 36–48 y 52–82 px.
+- **Cuerpo:** `clamp(18px, 0.3vw + 17px, 20px)`, altura de línea 1.6.
+- **Etiquetas:** 16–18 px, peso 600; evitar mayúsculas sostenidas.
 - Los títulos usan contraste editorial, peso contenido y espaciado ajustado; nunca sacrifican
   legibilidad por ornamentación.
 - **Números financieros:** variantes tabulares cuando estén disponibles.
@@ -57,7 +57,7 @@ La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 
 - Contenido principal: ocupa el ancho disponible con máximo de 1480 px y márgenes fluidos.
 - Texto largo: máximo 68 caracteres por línea.
-- Control interactivo: mínimo 44 × 44 px.
+- Control interactivo: mínimo 48 × 48 px; navegación principal de al menos 56 px de alto.
 - Separación entre secciones: 48 px en escritorio y 32 px en móvil.
 
 ### Forma, borde y sombra
@@ -175,7 +175,7 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
 ## Decisiones registradas
 
 - **D-DS-01:** combinar serif editorial en títulos con sans serif funcional.
-- **D-DS-02:** adoptar marfil mineral y marrón terroso como base visual.
+- **D-DS-02:** adoptar neutros minerales y verde carbón como base visual.
 - **D-DS-03:** usar bordes antes que sombras para expresar agrupación.
 - **D-DS-04:** no ofrecer tema oscuro en la primera etapa.
 - **D-DS-05:** mantener el movimiento breve, funcional y reducible.
@@ -187,3 +187,5 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
   17 px y navegación ampliada para mejorar legibilidad y presencia visual.
 - **D-DS-09:** hacer que el shell ocupe el viewport disponible, con barra lateral fluida en
   escritorio y encabezado de marca más navegación inferior en móvil.
+- **D-DS-10:** refinar la paleta hacia piedra cálida, carbón oliváceo y verde profundo para una
+  presencia más sobria, reduciendo la saturación de superficies, selección y estados.
