@@ -1,0 +1,1 @@
+"""Personal planner backend application."""

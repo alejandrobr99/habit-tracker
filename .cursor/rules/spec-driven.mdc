@@ -1,0 +1,27 @@
+---
+description: Aplica el flujo de especificaciones y las decisiones de diseño del planificador
+alwaysApply: true
+---
+
+# Desarrollo guiado por especificaciones
+
+- Lee `specs/constitution.md`, `specs/000-product-foundation.md`, la especificación de la función y
+  `specs/design-system.md` antes de proponer o cambiar producto.
+- Si el comportamiento solicitado no está especificado, actualiza primero la especificación.
+- Toda especificación funcional debe cubrir objetivos, no objetivos, modelo, API, estados de UI,
+  criterios de aceptación y decisiones.
+- Trata los criterios de aceptación como contrato verificable; refleja cada uno en implementación
+  o pruebas.
+- No inventes endpoints, campos ni estados para resolver detalles locales.
+- Registra decisiones duraderas con un identificador dentro de la especificación afectada.
+- Si código y especificación discrepan, señala el conflicto y confirma la dirección antes de
+  ampliar alcance.
+- Mantén hábitos y finanzas como dominios separados bajo convenciones comunes.
+- Aplica los tokens, voz, accesibilidad y restricciones de `specs/design-system.md`.
+- Usa `.cursor/skills/planner-design/SKILL.md` al crear o revisar interfaces.
+- Conserva los documentos en español y los identificadores técnicos en inglés.
+- Evita trabajo adyacente: implementa solo el incremento aceptado.
+- Elige la implementación correcta más simple; no anticipes capas, parámetros ni infraestructura.
+- Prefiere código local explícito a una abstracción difícil mientras la repetición no sea estable.
+- Parametriza solo valores que cambian por entorno y documenta su valor local seguro.
+- Optimiza después de medir y exige pruebas proporcionales al riesgo del cambio.

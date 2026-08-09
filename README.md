@@ -1,0 +1,84 @@
+# Personal Planner
+
+Planificador personal centrado en hábitos y finanzas, construido con una metodología guiada por
+especificaciones. La primera versión incluye un habit tracker funcional y una base visual preparada
+para ampliar el producto.
+
+## Estructura del monorepo
+
+```text
+.
+├── backend/    API en Python 3.11, gestionada con uv
+├── frontend/   Aplicación web TypeScript, gestionada con npm
+├── specs/      Producto, contratos, aceptación y sistema de diseño
+└── .cursor/    Regla de trabajo y skill visual del proyecto
+```
+
+Las especificaciones vigentes son:
+
+- `specs/constitution.md`: principios de sencillez, robustez y calidad.
+- `specs/000-product-foundation.md`: alcance, convenciones y arquitectura del producto.
+- `specs/001-habit-tracker.md`: primera funcionalidad completa.
+- `specs/002-finance-shell.md`: estructura inicial del módulo financiero.
+- `specs/design-system.md`: lenguaje visual, componentes y accesibilidad.
+- `specs/development-readiness.md`: controles mínimos y decisiones diferidas.
+
+## Método de trabajo
+
+1. Leer fundamentos, sistema de diseño y la especificación de la función.
+2. Actualizar la especificación si cambia el comportamiento esperado.
+3. Implementar el incremento sin ampliar su alcance.
+4. Verificar modelo, API, estados de UI y criterios de aceptación.
+5. Registrar decisiones duraderas en la especificación afectada.
+
+La regla `.cursor/rules/spec-driven.mdc` mantiene este flujo. La skill
+`.cursor/skills/planner-design/SKILL.md` guía la creación y revisión de interfaces.
+
+## Backend
+
+Desde la raíz:
+
+```bash
+cd backend
+uv sync
+uv run alembic upgrade head
+uv run uvicorn app.main:app --reload
+```
+
+La API queda disponible en `http://localhost:8000`, con salud en `/health`, documentación en
+`/docs` y recursos del planner bajo `/api/v1`. Copia `backend/environment.example` a
+`backend/.env` para cambiar los parámetros de ejecución.
+
+Para verificar el backend:
+
+```bash
+cd backend
+uv run pytest
+uv run ruff format --check .
+uv run ruff check .
+```
+
+## Frontend
+
+En otra terminal, desde la raíz:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+La aplicación queda disponible en `http://localhost:5173`. Copia
+`frontend/environment.example` a `frontend/.env` para usar otra API.
+
+Para verificar el frontend:
+
+```bash
+cd frontend
+npm run lint
+npm test
+npm run build
+```
+
+La integración continua repite estos controles y comprueba que la migración de Alembic pueda crear
+el esquema desde cero.

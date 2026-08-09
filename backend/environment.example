@@ -1,0 +1,2 @@
+PLANNER_DATABASE_URL=sqlite:///./personal_planner.db
+PLANNER_FRONTEND_ORIGINS=["http://localhost:5173"]

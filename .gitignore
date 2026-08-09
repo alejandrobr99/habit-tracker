@@ -1,0 +1,46 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Node y frontend
+node_modules/
+.npm/
+.vite/
+.next/
+coverage/
+*.tsbuildinfo
+
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Registros y temporales
+*.log
+*.tmp
+tmp/
+
+# Bases de datos locales
+*.db
+*.sqlite
+*.sqlite3
