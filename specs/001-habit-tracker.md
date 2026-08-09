@@ -87,7 +87,8 @@ Archivar conserva los registros.
 - **Listo:** semana, acciones, progreso y racha visibles.
 - **Archivado:** confirmación antes de retirar el hábito de las vistas activas.
 - **Recuperado:** una fecha reparada se distingue con texto neutral y sin simular un check-in
-  ordinario.
+  ordinario. Mientras el resumen semanal no exponga fechas recuperadas, la distinción aparece en
+  la confirmación de la acción y en la continuidad de la racha, no dentro de una celda diaria.
 
 ## Criterios de aceptación
 
@@ -99,6 +100,7 @@ Archivar conserva los registros.
 - Las rachas diarias y semanales respetan las reglas definidas.
 - Los hábitos `avoid` usan “Evitado” y “Pendiente”, nunca lenguaje de culpa ni un registro de
   recaídas.
+- La racha visible usa “días” para frecuencia `daily` y “semanas” para frecuencia `weekly`.
 - La API no expone check-ins fuera del usuario implícito ni incorpora telemetría de hábitos.
 - Hoy y Hábitos representan carga, vacío, error y contenido.
 - Crear, editar, archivar y marcar son operables con teclado.
@@ -116,3 +118,5 @@ Archivar conserva los registros.
   evitar una experiencia moralizante.
 - **D-001-08:** impedir el cambio de dirección después del primer check-in para conservar el
   significado del historial.
+- **D-001-09:** no representar visualmente una recuperación como check-in mientras el resumen
+  semanal no exponga su fecha; la recuperación solo restaura continuidad.

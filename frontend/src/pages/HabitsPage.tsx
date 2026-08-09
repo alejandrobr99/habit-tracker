@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Button } from "../components/ui/Button";
+import { Celebration } from "../components/ui/Celebration";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { StatusPanel } from "../components/ui/StatusPanel";
 import { HabitDialog } from "../features/habits/HabitDialog";
@@ -27,6 +28,11 @@ import {
 import type { HabitInput } from "../types/planner";
 
 export function HabitsPage() {
+  const [celebratedCheck, setCelebratedCheck] = useState<{
+    date: string;
+    habitId: number;
+    habitName: string;
+  } | null>(null);
   const [week, setWeek] = useState(() => startOfWeek());
   const [recoveryMessage, setRecoveryMessage] = useState<{
     habitId: number;
@@ -95,7 +101,21 @@ export function HabitsPage() {
         await plannerApi.checkIn(habitId, date);
       }
     },
-    onSuccess: async () => {
+    onSuccess: async (_, variables) => {
+      if (variables.checked) {
+        setCelebratedCheck(null);
+      } else {
+        const habit = habitsQuery.data?.find(
+          (item) => item.id === variables.habitId,
+        );
+        if (habit) {
+          setCelebratedCheck({
+            date: variables.date,
+            habitId: habit.id,
+            habitName: habit.name,
+          });
+        }
+      }
       await queryClient.invalidateQueries({ queryKey: ["weekly-summary"] });
     },
   });
@@ -237,6 +257,15 @@ export function HabitsPage() {
         </div>
       </section>
 
+      {celebratedCheck && (
+        <Celebration
+          description="La semana ya refleja este registro."
+          kind="check-in"
+          onDismiss={() => setCelebratedCheck(null)}
+          title={`${celebratedCheck.habitName} avanzó`}
+        />
+      )}
+
       {habits.length === 0 ? (
         <StatusPanel
           action={
@@ -274,7 +303,14 @@ export function HabitsPage() {
             const summary = summaries.get(habit.id);
             const completedDates = new Set(summary?.check_in_dates ?? []);
             return (
-              <article className="habit-grid habit-row" key={habit.id}>
+              <article
+                className="habit-grid habit-row"
+                data-complete={
+                  (summary?.completed_count ?? 0)
+                  >= (summary?.target_count ?? 1)
+                }
+                key={habit.id}
+              >
                 <div className="habit-identity">
                   <span
                     aria-hidden="true"
@@ -330,6 +366,10 @@ export function HabitsPage() {
                         className={`check-button${
                           checked ? " check-button--checked" : ""
                         }`}
+                        data-celebrating={
+                          celebratedCheck?.habitId === habit.id
+                          && celebratedCheck.date === date
+                        }
                         disabled={checkInMutation.isPending}
                         key={date}
                         onClick={() =>
@@ -355,7 +395,9 @@ export function HabitsPage() {
                 <div className="streak">
                   <Flame aria-hidden="true" size={17} />
                   <strong>{summary?.current_streak ?? 0}</strong>
-                  <span>días</span>
+                  <span>
+                    {habit.frequency === "daily" ? "días" : "semanas"}
+                  </span>
                 </div>
 
                 <div className="habit-actions">

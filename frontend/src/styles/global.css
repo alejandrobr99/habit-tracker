@@ -1,3 +1,4 @@
+@layer legacy {
 * {
   box-sizing: border-box;
 }
@@ -1501,6 +1502,8 @@ progress {
     animation: none;
   }
 }
+}
+
 * {
   box-sizing: border-box;
 }

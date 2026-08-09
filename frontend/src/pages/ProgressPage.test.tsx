@@ -74,5 +74,77 @@ describe("ProgressPage", () => {
         }),
       );
     });
+    expect(
+      await screen.findByText("Desafío semanal creado"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a reward celebration after a successful redemption", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/gamification/progress")) {
+        return response({
+          lifetime_xp: 120,
+          available_xp: 90,
+          level: 2,
+          level_start_xp: 100,
+          next_level_xp: 200,
+        });
+      }
+      if (url.endsWith("/gamification/badges") || url.endsWith("/habits")) {
+        return response([]);
+      }
+      if (url.includes("/weekly-challenges")) {
+        return response({ detail: "Weekly challenge not found" }, 404);
+      }
+      if (url.includes("/gamification/rewards")) {
+        return response([
+          {
+            id: 5,
+            name: "Una tarde de lectura",
+            description: "Elegir un libro y descansar.",
+            cost_xp: 20,
+            status: "active",
+            created_at: "2026-08-03T12:00:00Z",
+            updated_at: "2026-08-03T12:00:00Z",
+          },
+        ]);
+      }
+      if (
+        url.endsWith("/gamification/reward-redemptions")
+        && init?.method === "POST"
+      ) {
+        return response({
+          id: 8,
+          reward_id: 5,
+          cost_xp: 20,
+          idempotency_key: "test-key",
+          redeemed_at: "2026-08-08T12:00:00Z",
+        }, 201);
+      }
+      return response({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <ProgressPage />
+      </QueryClientProvider>,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Canjear recompensa" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "Este momento lo elegiste tú. Disfrútalo a tu manera.",
+      ),
+    ).toBeInTheDocument();
   });
 });

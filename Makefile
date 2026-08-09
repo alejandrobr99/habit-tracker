@@ -48,7 +48,23 @@ stop:
 		pids=$$(lsof -tiTCP:$$port -sTCP:LISTEN); \
 		if [ -n "$$pids" ]; then \
 			echo "Deteniendo procesos en el puerto $$port: $$pids"; \
-			kill $$pids; \
+			kill -CONT $$pids 2>/dev/null || true; \
+			kill -TERM $$pids 2>/dev/null || true; \
+		fi; \
+	done; \
+	for attempt in 1 2 3 4 5 6 7 8 9 10; do \
+		busy=0; \
+		for port in $(BACKEND_PORT) $(FRONTEND_PORT); do \
+			if lsof -tiTCP:$$port -sTCP:LISTEN >/dev/null; then busy=1; fi; \
+		done; \
+		if [ "$$busy" -eq 0 ]; then exit 0; fi; \
+		sleep 0.1; \
+	done; \
+	for port in $(BACKEND_PORT) $(FRONTEND_PORT); do \
+		pids=$$(lsof -tiTCP:$$port -sTCP:LISTEN); \
+		if [ -n "$$pids" ]; then \
+			echo "Forzando cierre en el puerto $$port: $$pids"; \
+			kill -KILL $$pids 2>/dev/null || true; \
 		fi; \
 	done
 

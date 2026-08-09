@@ -4,12 +4,13 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
-import { HabitsPage } from "./HabitsPage";
+import { toDateKey } from "../lib/date";
+import { TodayPage } from "./TodayPage";
 
 const habit = {
-  id: 7,
-  name: "Leer diez páginas",
-  description: "Antes de dormir",
+  id: 9,
+  name: "Caminar diez minutos",
+  description: "Después del almuerzo",
   direction: "build",
   frequency: "daily",
   status: "active",
@@ -25,14 +26,15 @@ function response(body: unknown): Response {
   });
 }
 
-describe("HabitsPage", () => {
-  it("loads a habit and sends its daily check-in", async () => {
+describe("TodayPage", () => {
+  it("celebrates only after a confirmed check-in", async () => {
+    const today = toDateKey(new Date());
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("weekly-summary")) {
         return response({
-          week_start: "2026-08-03",
-          week_end: "2026-08-09",
+          week_start: today,
+          week_end: today,
           habits: [
             {
               habit,
@@ -48,9 +50,9 @@ describe("HabitsPage", () => {
         return response([habit]);
       }
       return response({
-        id: 1,
+        id: 3,
         habit_id: habit.id,
-        check_in_date: "2026-08-08",
+        check_in_date: today,
         created_at: "2026-08-08T12:00:00Z",
       });
     });
@@ -65,7 +67,7 @@ describe("HabitsPage", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <HabitsPage />
+          <TodayPage />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -73,44 +75,20 @@ describe("HabitsPage", () => {
     expect(
       await screen.findByRole("heading", { name: habit.name }),
     ).toBeInTheDocument();
+    expect(screen.queryByText(`${habit.name} quedó completado`)).not.toBeInTheDocument();
+
     await userEvent.click(
-      screen.getAllByRole("button", {
-        name: new RegExp(`Marcar ${habit.name}`),
-      })[0],
+      screen.getByRole("button", { name: `Marcar ${habit.name}` }),
     );
 
+    expect(
+      await screen.findByText(`${habit.name} quedó completado`),
+    ).toBeInTheDocument();
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringMatching(
-          new RegExp(`/habits/${habit.id}/check-ins/\\d{4}-\\d{2}-\\d{2}$`),
-        ),
+        expect.stringMatching(`/habits/${habit.id}/check-ins/${today}$`),
         expect.objectContaining({ method: "PUT" }),
       );
     });
-    expect(
-      await screen.findByText(`${habit.name} avanzó`),
-    ).toBeInTheDocument();
-    expect(screen.getByText("días")).toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Recuperar ayer" }),
-    );
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        `http://localhost:8000/api/v1/habits/${habit.id}/streak-recoveries`,
-        expect.objectContaining({
-          method: "POST",
-          body: expect.stringMatching(
-            /^\{"recovered_date":"\d{4}-\d{2}-\d{2}"\}$/,
-          ),
-        }),
-      );
-    });
-    expect(
-      await screen.findByText(
-        "Ayer quedó recuperado para la continuidad de tu racha.",
-      ),
-    ).toBeInTheDocument();
   });
 });

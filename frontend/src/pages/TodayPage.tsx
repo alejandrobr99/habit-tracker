@@ -1,13 +1,20 @@
 import { ArrowRight, Check, Flame, Leaf, Target } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "../components/ui/Button";
+import { Celebration } from "../components/ui/Celebration";
+import { OrganicMotif } from "../components/ui/OrganicMotif";
 import { StatusPanel } from "../components/ui/StatusPanel";
 import { plannerApi } from "../lib/api";
 import { formatLongDate, startOfWeek, toDateKey } from "../lib/date";
 
 export function TodayPage() {
+  const [celebratedHabit, setCelebratedHabit] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
   const today = new Date();
   const todayKey = toDateKey(today);
   const weekKey = toDateKey(startOfWeek(today));
@@ -34,7 +41,17 @@ export function TodayPage() {
         await plannerApi.checkIn(habitId, todayKey);
       }
     },
-    onSuccess: async () => {
+    onSuccess: async (_, variables) => {
+      if (variables.checked) {
+        setCelebratedHabit(null);
+      } else {
+        const habit = habitsQuery.data?.find(
+          (item) => item.id === variables.habitId,
+        );
+        if (habit) {
+          setCelebratedHabit({ id: habit.id, name: habit.name });
+        }
+      }
       await queryClient.invalidateQueries({ queryKey: ["weekly-summary"] });
     },
   });
@@ -68,22 +85,33 @@ export function TodayPage() {
   return (
     <div className="page">
       <header className="today-header">
-        <div>
+        <div className="today-hero-copy">
           <span className="eyebrow">{formatLongDate(today)}</span>
           <h1>Un día a la vez.</h1>
-          <p>Tu panorama de hoy, claro y sin ruido.</p>
+          <p>
+            Cada registro hace visible el ritmo que elegiste construir.
+          </p>
         </div>
-        <div aria-label={`${doneToday} de ${habits.length} hábitos completados`} className="progress-ring">
-          <svg aria-hidden="true" viewBox="0 0 44 44">
-            <circle cx="22" cy="22" r="18" />
-            <circle
-              cx="22"
-              cy="22"
-              r="18"
-              style={{ strokeDashoffset: 113 - (113 * progress) / 100 }}
-            />
-          </svg>
-          <strong>{Math.round(progress)}%</strong>
+        <OrganicMotif className="hero-motif" variant="sprout" />
+        <div className="daily-orb">
+          <div
+            aria-label={`${doneToday} de ${habits.length} hábitos completados`}
+            className="progress-ring"
+          >
+            <svg aria-hidden="true" viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" />
+              <circle
+                cx="22"
+                cy="22"
+                r="18"
+                style={{ strokeDashoffset: 113 - (113 * progress) / 100 }}
+              />
+            </svg>
+          </div>
+          <div className="daily-orb__copy">
+            <strong>{Math.round(progress)}%</strong>
+            <span>hoy</span>
+          </div>
         </div>
       </header>
 
@@ -107,7 +135,7 @@ export function TodayPage() {
           </div>
         </article>
         <article className="summary-card">
-          <span className="summary-card__icon">
+          <span className="summary-card__icon summary-card__icon--gold">
             <Leaf aria-hidden="true" size={19} />
           </span>
           <div>
@@ -116,6 +144,15 @@ export function TodayPage() {
           </div>
         </article>
       </section>
+
+      {celebratedHabit && (
+        <Celebration
+          description="Tu progreso de hoy ya refleja este avance."
+          kind="check-in"
+          onDismiss={() => setCelebratedHabit(null)}
+          title={`${celebratedHabit.name} quedó completado`}
+        />
+      )}
 
       <section className="today-section">
         <div className="section-heading">
@@ -172,7 +209,12 @@ export function TodayPage() {
                   ?.check_in_dates.includes(todayKey) ?? false;
               const streak = summaries.get(habit.id)?.current_streak ?? 0;
               return (
-                <article className="today-habit" key={habit.id}>
+                <article
+                  className="today-habit"
+                  data-celebrating={celebratedHabit?.id === habit.id}
+                  data-complete={checked}
+                  key={habit.id}
+                >
                   <button
                     aria-label={`${
                       habit.direction === "avoid"
@@ -207,12 +249,22 @@ export function TodayPage() {
                   <div>
                     <h3>{habit.name}</h3>
                     <p>
-                      {checked && habit.direction === "avoid"
-                        ? "Evitado"
-                        : habit.description ||
-                        (habit.frequency === "daily"
-                          ? "Cada día"
-                          : "Una vez por semana")}
+                      <span className="habit-state">
+                        {checked
+                          ? habit.direction === "avoid"
+                            ? "Evitado"
+                            : "Completado"
+                          : "Pendiente"}
+                      </span>
+                      {!checked && (
+                        <>
+                          {" · "}
+                          {habit.description
+                            || (habit.frequency === "daily"
+                              ? "Cada día"
+                              : "Una vez por semana")}
+                        </>
+                      )}
                     </p>
                   </div>
                   <span className="today-habit__streak">

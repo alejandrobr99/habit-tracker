@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Award, Pencil, Plus, X } from "lucide-react";
+import { Archive, Award, Gift, Pencil, Plus, X } from "lucide-react";
 import {
   type FormEvent,
   type ReactNode,
@@ -8,7 +8,9 @@ import {
 } from "react";
 
 import { Button } from "../components/ui/Button";
+import { Celebration } from "../components/ui/Celebration";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { OrganicMotif } from "../components/ui/OrganicMotif";
 import { StatusPanel } from "../components/ui/StatusPanel";
 import { ApiError, plannerApi } from "../lib/api";
 import { startOfWeek, toDateKey } from "../lib/date";
@@ -17,7 +19,11 @@ import type { Habit, Reward, RewardInput } from "../types/planner";
 export function ProgressPage() {
   const weekStart = toDateKey(startOfWeek());
   const queryClient = useQueryClient();
-  const [feedback, setFeedback] = useState("");
+  const [feedback, setFeedback] = useState<{
+    description: string;
+    kind: "milestone" | "reward" | "routine";
+    title: string;
+  } | null>(null);
   const progressQuery = useQuery({
     queryKey: ["progress"],
     queryFn: plannerApi.getProgress,
@@ -62,14 +68,22 @@ export function ProgressPage() {
       target_count: targetCount,
     }),
     onSuccess: async () => {
-      setFeedback("Desafío semanal creado.");
+      setFeedback({
+        description: "Puedes seguir su avance aquí durante la semana.",
+        kind: "routine",
+        title: "Desafío semanal creado",
+      });
       await refreshProgress();
     },
   });
   const deleteChallengeMutation = useMutation({
     mutationFn: plannerApi.deleteWeeklyChallenge,
     onSuccess: async () => {
-      setFeedback("Desafío eliminado.");
+      setFeedback({
+        description: "Tus registros y XP anteriores se conservaron.",
+        kind: "routine",
+        title: "Desafío eliminado",
+      });
       await refreshProgress();
     },
   });
@@ -77,7 +91,11 @@ export function ProgressPage() {
     mutationFn: ({ id, input }: { id?: number; input: RewardInput }) =>
       id ? plannerApi.updateReward(id, input) : plannerApi.createReward(input),
     onSuccess: async () => {
-      setFeedback("Recompensa guardada.");
+      setFeedback({
+        description: "Quedó disponible como una elección personal.",
+        kind: "routine",
+        title: "Recompensa guardada",
+      });
       await refreshProgress();
     },
   });
@@ -88,15 +106,24 @@ export function ProgressPage() {
   const redeemMutation = useMutation({
     mutationFn: (rewardId: number) =>
       plannerApi.redeemReward(rewardId, crypto.randomUUID()),
-    onSuccess: async () => {
-      setFeedback("Recompensa canjeada.");
+    onSuccess: async (_, rewardId) => {
+      const reward = rewardsQuery.data?.find((item) => item.id === rewardId);
+      setFeedback({
+        description: "Este momento lo elegiste tú. Disfrútalo a tu manera.",
+        kind: "reward",
+        title: reward?.name ?? "Recompensa canjeada",
+      });
       await refreshProgress();
     },
   });
   const reviewMutation = useMutation({
     mutationFn: () => plannerApi.putFinanceReview(weekStart),
     onSuccess: async () => {
-      setFeedback("Revisión semanal completada.");
+      setFeedback({
+        description: "Tu revisión quedó reconocida sin valorar montos ni resultados.",
+        kind: "milestone",
+        title: "Revisión semanal completada",
+      });
       await refreshProgress();
     },
   });
@@ -166,23 +193,55 @@ export function ProgressPage() {
       </header>
 
       {feedback && (
-        <div className="achievement-feedback" role="status">
-          <Award aria-hidden="true" size={20} />
-          <span>{feedback}</span>
-          <button className="text-button" onClick={() => setFeedback("")}>Cerrar</button>
-        </div>
+        feedback.kind === "routine" ? (
+          <div className="achievement-feedback" role="status">
+            <Award aria-hidden="true" size={20} />
+            <span>
+              <strong>{feedback.title}</strong>
+              {" "}
+              {feedback.description}
+            </span>
+            <button
+              className="text-button"
+              onClick={() => setFeedback(null)}
+              type="button"
+            >
+              Cerrar
+            </button>
+          </div>
+        ) : (
+          <Celebration
+            description={feedback.description}
+            kind={feedback.kind}
+            onDismiss={() => setFeedback(null)}
+            title={feedback.title}
+          />
+        )
       )}
 
-      <section className="level-panel" aria-label={`Nivel ${progress.level}`}>
-        <div>
-          <span>Nivel actual</span>
-          <strong>{progress.level}</strong>
+      <section className="progress-hero" aria-label={`Nivel ${progress.level}`}>
+        <div className="level-emblem">
+          <div>
+            <span>Nivel</span>
+            <strong>{progress.level}</strong>
+          </div>
         </div>
         <div className="level-details">
-          <span>{progress.lifetime_xp} XP acumulado · {progress.available_xp} XP disponible</span>
-          <progress max={100} value={Math.max(0, Math.min(100, levelProgress))} />
-          <small>{progress.next_level_xp - progress.lifetime_xp} XP para el siguiente nivel</small>
+          <span className="eyebrow">Tu recorrido</span>
+          <h2>Lo que has elegido sostener</h2>
+          <span>
+            {progress.lifetime_xp} XP acumulado · {progress.available_xp} XP disponible
+          </span>
+          <progress
+            aria-label={`${Math.round(levelProgress)}% hacia el siguiente nivel`}
+            max={100}
+            value={Math.max(0, Math.min(100, levelProgress))}
+          />
+          <small>
+            {progress.next_level_xp - progress.lifetime_xp} XP para el siguiente nivel
+          </small>
         </div>
+        <OrganicMotif className="progress-hero__motif" variant="orbit" />
       </section>
 
       <section className="planner-section">
@@ -224,9 +283,16 @@ export function ProgressPage() {
         <div className="section-heading"><div><span className="eyebrow">Reconocimientos</span><h2>Insignias</h2></div></div>
         <div className="badge-grid">
           {(badgesQuery.data ?? []).map((badge) => (
-            <article className={badge.awarded ? "badge-item badge-item--awarded" : "badge-item"} key={badge.code}>
+            <article
+              className={badge.awarded ? "badge-item badge-item--awarded" : "badge-item"}
+              key={badge.code}
+            >
               <Award aria-hidden="true" size={21} />
-              <div><strong>{badge.name}</strong><p>{badge.description}</p><small>{badge.awarded ? "Obtenida" : "Pendiente"}</small></div>
+              <div>
+                <strong>{badge.name}</strong>
+                <p>{badge.description}</p>
+                <small>{badge.awarded ? "Obtenida" : "Pendiente"}</small>
+              </div>
             </article>
           ))}
         </div>
@@ -242,23 +308,57 @@ export function ProgressPage() {
         {rewards.length === 0 ? (
           <p className="empty-copy">Crea una recompensa personal cuando te resulte útil.</p>
         ) : (
-          <div className="data-list">
+          <div className="reward-grid">
             {rewards.map((reward) => (
-              <article className="data-row" key={reward.id}>
-                <div><strong>{reward.name}</strong><small>{reward.description || "Sin descripción"} · {reward.cost_xp} XP</small></div>
-                <Button
-                  disabled={redeemMutation.isPending || progress.available_xp < reward.cost_xp}
-                  onClick={() => redeemMutation.mutate(reward.id)}
-                  variant="secondary"
-                >
-                  {progress.available_xp < reward.cost_xp ? "XP insuficiente" : "Canjear"}
-                </Button>
-                <RewardDialog reward={reward} pending={rewardMutation.isPending} onSave={(input) => rewardMutation.mutateAsync({ id: reward.id, input })}>
-                  <button className="icon-button" aria-label={`Editar ${reward.name}`}><Pencil aria-hidden="true" size={17} /></button>
-                </RewardDialog>
-                <ConfirmDialog title="¿Archivar recompensa?" description="Dejará de aparecer entre las recompensas activas." onConfirm={() => archiveRewardMutation.mutate(reward.id)}>
-                  <button className="icon-button" aria-label={`Archivar ${reward.name}`}><Archive aria-hidden="true" size={17} /></button>
-                </ConfirmDialog>
+              <article className="reward-card" key={reward.id}>
+                <span className="reward-card__icon">
+                  <Gift aria-hidden="true" size={21} />
+                </span>
+                <div className="reward-card__content">
+                  <h3>{reward.name}</h3>
+                  <p>{reward.description || "Una elección personal para disfrutar."}</p>
+                  <span className="reward-card__cost">{reward.cost_xp} XP</span>
+                </div>
+                <div className="reward-card__actions">
+                  <Button
+                    disabled={
+                      redeemMutation.isPending
+                      || progress.available_xp < reward.cost_xp
+                    }
+                    onClick={() => redeemMutation.mutate(reward.id)}
+                    variant="secondary"
+                  >
+                    {progress.available_xp < reward.cost_xp
+                      ? "XP insuficiente"
+                      : "Canjear recompensa"}
+                  </Button>
+                  <RewardDialog
+                    reward={reward}
+                    pending={rewardMutation.isPending}
+                    onSave={(input) =>
+                      rewardMutation.mutateAsync({ id: reward.id, input })
+                    }
+                  >
+                    <button
+                      className="icon-button"
+                      aria-label={`Editar ${reward.name}`}
+                    >
+                      <Pencil aria-hidden="true" size={17} />
+                    </button>
+                  </RewardDialog>
+                  <ConfirmDialog
+                    title="¿Archivar recompensa?"
+                    description="Dejará de aparecer entre las recompensas activas."
+                    onConfirm={() => archiveRewardMutation.mutate(reward.id)}
+                  >
+                    <button
+                      className="icon-button"
+                      aria-label={`Archivar ${reward.name}`}
+                    >
+                      <Archive aria-hidden="true" size={17} />
+                    </button>
+                  </ConfirmDialog>
+                </div>
               </article>
             ))}
           </div>

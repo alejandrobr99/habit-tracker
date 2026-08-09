@@ -12,22 +12,24 @@ Lee antes de diseñar:
 1. `specs/design-system.md`.
 2. `specs/000-product-foundation.md`.
 3. La especificación numerada de la función afectada.
+4. `planner-visual-delight/SKILL.md` al diseñar movimiento, celebración u ornamento.
 
 Si falta un estado o comportamiento, actualiza la especificación antes de inventarlo en código.
 
 ## Dirección visual
 
-Conserva una herramienta personal serena, elegante y cálida:
+Conserva una herramienta personal espectacular pero elegante, orgánica y calmada:
 
 - Fondos piedra cálida, superficies claras y texto carbón oliváceo.
-- Verde profundo y desaturado como único acento principal.
+- Verde profundo como acento principal y tonos botánicos, arcilla o dorado apagado para hitos.
 - Serif editorial solo para títulos; sans serif para controles y datos.
 - Bordes sutiles antes que sombras; radios moderados y espacio generoso.
 - Una acción primaria por región y jerarquía de lectura evidente.
-- Movimiento breve y funcional, eliminado cuando el usuario prefiere movimiento reducido.
+- Motivos botánicos abstractos que no compitan con texto ni controles.
+- Movimiento breve y funcional según `planner-visual-delight`.
 
-Evita degradados, negro puro, colores neón, emojis, ilustraciones decorativas, exceso de tarjetas,
-sombras dramáticas, navegación de panel genérico y celebraciones invasivas o no reducibles.
+Evita negro puro, colores neón, emojis, escenas decorativas, exceso de tarjetas, sombras dramáticas,
+navegación de panel genérico y celebraciones invasivas o no reducibles.
 
 ## Flujo de trabajo
 

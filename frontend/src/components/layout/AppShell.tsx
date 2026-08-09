@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
+import { OrganicMotif } from "../ui/OrganicMotif";
+
 const navigation = [
   { label: "Hoy", path: "/", icon: CalendarCheck },
   { label: "Hábitos", path: "/habitos", icon: ListChecks },
@@ -47,6 +49,7 @@ export function AppShell() {
         <p className="sidebar__note">
           Un lugar sereno para cuidar lo que importa.
         </p>
+        <OrganicMotif className="sidebar__motif" variant="bloom" />
       </aside>
 
       <header className="mobile-header">

@@ -2,16 +2,16 @@
 
 ## Dirección
 
-La interfaz debe sentirse sobria, elegante y cercana: una herramienta personal que acompaña sin
-competir por atención. La calidez procede de fondos minerales, tipografía cuidada y acentos
-terrosos, no de decoración nostálgica. Se evita la estética genérica de panel SaaS.
+La interfaz debe sentirse espectacular pero elegante, orgánica y cercana: una herramienta personal
+que celebra sin competir por atención. La calidez procede de fondos minerales, tipografía cuidada,
+acentos terrosos y formas botánicas abstractas. Se evita la estética genérica de panel SaaS.
 
 ## Principios
 
-1. **Serenidad:** pocos niveles simultáneos, aire suficiente y movimiento mínimo.
+1. **Serenidad viva:** pocos niveles simultáneos, aire suficiente y movimiento con propósito.
 2. **Claridad táctil:** controles reconocibles, estados visibles y áreas cómodas.
 3. **Jerarquía editorial:** títulos expresivos y datos densos en tipografía funcional.
-4. **Calidez contenida:** neutros cálidos con un único acento dominante.
+4. **Calidez contenida:** neutros cálidos, un acento dominante y tonos de celebración secundarios.
 5. **Accesibilidad:** contraste AA, teclado completo y significado independiente del color.
 6. **Progreso sin juicio:** reconocer constancia y recuperación sin culpa, comparación ni urgencia.
 
@@ -34,9 +34,17 @@ terrosos, no de decoración nostálgica. Se evita la estética genérica de pane
 | `warning` | `#806A48` | Atención no destructiva |
 | `danger` | `#7D4D49` | Error y acción destructiva |
 | `focus` | `#315A73` | Anillo de foco de alto contraste |
+| `moss` | `#71806D` | Crecimiento y continuidad secundaria |
+| `clay-soft` | `#EBE0D2` | Superficie cálida puntual |
+| `petal-soft` | `#E8D7CF` | Ornamento y celebraciones suaves |
+| `gold-soft` | `#E9D9B8` | Hitos, insignias y recompensas |
+| `gold-ink` | `#725A2F` | Texto e icono sobre `gold-soft` |
+| `mist` | `#DCE6E0` | Profundidad botánica decorativa |
 
-No usar negro puro, degradados ni colores neón. Los estados combinan color, iconografía sobria y
-texto. Un tema oscuro queda fuera de alcance hasta contar con su propia paleta verificada.
+No usar negro puro ni colores neón. Se permiten lavados radiales muy suaves que combinen tokens
+decorativos y no reduzcan contraste; nunca sustituyen una superficie funcional. Los estados
+combinan color, forma, iconografía sobria y texto. Un tema oscuro queda fuera de alcance hasta
+contar con su propia paleta verificada.
 
 ### Tipografía
 
@@ -105,8 +113,8 @@ La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 
 - Pendiente: borde neutro y control vacío.
 - Completado: marca, texto explícito y `success`.
-- Omitido: trazo breve, etiqueta “Omitido” y tono neutral.
-- La animación de cambio dura 140–180 ms y respeta `prefers-reduced-motion`.
+- Evitado: marca, texto explícito y `success`; confirma la intención sin registrar recaídas.
+- La animación de cambio usa `motion-state` y respeta `prefers-reduced-motion`.
 
 ### Datos financieros
 
@@ -121,16 +129,18 @@ La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 - Las recompensas personales usan el nombre escrito por el usuario y no simulan valor monetario.
 - Una racha interrumpida ofrece continuidad o recuperación con texto neutral; no usa pérdida visual,
   colores destructivos ni mensajes de culpa.
-- Las celebraciones se reservan para nivel, insignia, desafío o recompensa alcanzados. Duran como
-  máximo 600 ms, pueden descartarse y no bloquean navegación ni entrada.
+- El check-in confirmado puede usar una celebración local; nivel, insignia, desafío y recompensa
+  alcanzados pueden usar una celebración de hito. Duran como máximo 600 ms, pueden descartarse y no
+  bloquean navegación ni entrada.
 - Con `prefers-reduced-motion`, la celebración es una confirmación estática sin confeti,
   desplazamiento ni transformación.
 
 ## Iconografía e imágenes
 
 Usar iconos lineales de 18–20 px con trazo consistente. Cada icono de acción requiere nombre
-accesible. No usar ilustraciones decorativas, emojis, fotografías de stock ni iconos rellenos de
-estilos mezclados.
+accesible. Se permiten motivos SVG botánicos abstractos y texturas minerales sin información,
+ocultos a tecnologías de asistencia y separados de controles. No usar emojis, fotografías de stock
+ni iconos rellenos de estilos mezclados.
 
 ## Voz y contenido
 
@@ -144,11 +154,22 @@ estilos mezclados.
 
 ## Movimiento
 
-- Transiciones funcionales entre 120 y 220 ms.
-- Animar opacidad y transformación; evitar animar layout.
-- Las celebraciones permitidas son breves, no repetitivas y nunca usan rebotes ni movimiento
-  continuo.
-- Con movimiento reducido, eliminar transiciones no esenciales.
+| Token | Duración | Uso |
+| --- | ---: | --- |
+| `motion-instant` | 80 ms | Presión y respuesta táctil |
+| `motion-state` | 160 ms | Estado, hover, foco y check-in |
+| `motion-emphasis` | 320 ms | Progreso y entrada de feedback |
+| `motion-celebration` | 600 ms | Secuencia de hito no bloqueante |
+
+- Usar una curva de salida rápida para entradas y estado; la respuesta comienza de inmediato.
+- Animar opacidad y transformación; evitar animar layout, desenfoque grande o dimensiones.
+- Una microrespuesta permanece en el componente que originó la acción.
+- Una celebración combina como máximo tres capas: superficie, símbolo y partículas orgánicas.
+- Las partículas son abstractas, finitas y locales; nunca simulan moneda, premio aleatorio o
+  actividad social.
+- No usar rebote repetitivo, parallax, giro continuo, destello, estrobo ni movimiento automático.
+- Con movimiento reducido, sustituir desplazamiento, escala y partículas por cambio estático de
+  borde, color, símbolo y texto.
 
 ## Estados y accesibilidad
 
@@ -170,7 +191,8 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
   tamaños soportados.
 - Una celebración no bloquea la acción siguiente, puede descartarse y tiene alternativa estática.
 - Rachas, XP, insignias y finanzas usan lenguaje neutral y siguen siendo comprensibles sin color.
-- No aparecen degradados, negro puro, emojis ni patrones de panel genérico.
+- No aparecen negro puro, emojis, neón ni patrones de panel genérico; los lavados decorativos
+  conservan contraste y no comunican estado.
 
 ## Decisiones registradas
 
@@ -189,3 +211,9 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
   escritorio y encabezado de marca más navegación inferior en móvil.
 - **D-DS-10:** refinar la paleta hacia piedra cálida, carbón oliváceo y verde profundo para una
   presencia más sobria, reduciendo la saturación de superficies, selección y estados.
+- **D-DS-11:** evolucionar la dirección hacia una presencia orgánica y celebratoria mediante tonos
+  secundarios, motivos botánicos abstractos y profundidad mineral, sin competir con la tarea.
+- **D-DS-12:** adoptar cuatro tokens de duración y limitar cada celebración a tres capas finitas,
+  activadas solo por una acción confirmada.
+- **D-DS-13:** permitir lavados radiales decorativos de bajo contraste, pero no degradados como
+  superficie funcional ni como portadores de significado.

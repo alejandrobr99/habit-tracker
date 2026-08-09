@@ -13,6 +13,7 @@ Lee antes de trabajar:
 2. `specs/001-habit-tracker.md` o `specs/004-finance-mvp.md`, según el dominio.
 3. `specs/design-system.md`.
 4. [RESEARCH.md](RESEARCH.md) cuando se evalúe una mecánica, tono o decisión de motivación.
+5. `planner-visual-delight/SKILL.md` para movimiento, celebración y ornamentación.
 
 Si falta un comportamiento, actualiza primero la especificación. No inventes eventos, cantidades de
 XP, insignias, estados ni señales financieras en código.
@@ -55,8 +56,7 @@ XP, insignias, estados ni señales financieras en código.
 - Mantén nivel y XP secundarios frente a la acción de hábitos o finanzas.
 - Explica barras con texto y cifras; no dependas de color.
 - No uses cuentas regresivas alarmistas ni estados destructivos para una racha.
-- Una celebración dura como máximo lo especificado, puede descartarse y no atrapa foco.
-- Con `prefers-reduced-motion`, reemplaza celebración por confirmación estática.
+- Delega la coreografía y alternativa de movimiento a `planner-visual-delight`.
 - Después de una ausencia, ofrece “Continuar hoy” aunque la recuperación no esté disponible.
 - Usa “La semana terminó” y “XP disponible”; evita “Fallaste” o “Necesitas esforzarte”.
 
