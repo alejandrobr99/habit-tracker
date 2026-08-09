@@ -16,8 +16,13 @@ import { Button } from "../components/ui/Button";
 import { Celebration } from "../components/ui/Celebration";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { StatusPanel } from "../components/ui/StatusPanel";
+import { StreakSpectacle } from "../components/ui/StreakSpectacle";
 import { HabitDialog } from "../features/habits/HabitDialog";
 import { ApiError, plannerApi } from "../lib/api";
+import {
+  selectCheckInSpectacle,
+  type SpectacleMoment,
+} from "../lib/celebrations";
 import {
   formatShortDate,
   formatShortDay,
@@ -33,6 +38,7 @@ export function HabitsPage() {
     habitId: number;
     habitName: string;
   } | null>(null);
+  const [spectacle, setSpectacle] = useState<SpectacleMoment | null>(null);
   const [week, setWeek] = useState(() => startOfWeek());
   const [recoveryMessage, setRecoveryMessage] = useState<{
     habitId: number;
@@ -104,19 +110,48 @@ export function HabitsPage() {
     onSuccess: async (_, variables) => {
       if (variables.checked) {
         setCelebratedCheck(null);
-      } else {
-        const habit = habitsQuery.data?.find(
-          (item) => item.id === variables.habitId,
-        );
-        if (habit) {
-          setCelebratedCheck({
-            date: variables.date,
-            habitId: habit.id,
-            habitName: habit.name,
-          });
-        }
+        setSpectacle(null);
+        await queryClient.invalidateQueries({ queryKey: ["weekly-summary"] });
+        return;
       }
-      await queryClient.invalidateQueries({ queryKey: ["weekly-summary"] });
+
+      const habit = habitsQuery.data?.find(
+        (item) => item.id === variables.habitId,
+      );
+      const before = summaryQuery.data?.habits.find(
+        (item) => item.habit.id === variables.habitId,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["weekly-summary", weekKey],
+        refetchType: "none",
+      });
+      const updated = await queryClient.fetchQuery({
+        queryKey: ["weekly-summary", weekKey],
+        queryFn: () => plannerApi.getWeeklySummary(weekKey),
+      });
+      const after = updated.habits.find(
+        (item) => item.habit.id === variables.habitId,
+      );
+      const moment = before && after
+        ? selectCheckInSpectacle({
+            after,
+            before,
+            date: variables.date,
+            summaries: updated.habits,
+            todayKey,
+          })
+        : null;
+
+      if (moment) {
+        setCelebratedCheck(null);
+        setSpectacle(moment);
+      } else if (habit) {
+        setCelebratedCheck({
+          date: variables.date,
+          habitId: habit.id,
+          habitName: habit.name,
+        });
+      }
     },
   });
 
@@ -206,6 +241,12 @@ export function HabitsPage() {
 
   return (
     <PageFrame>
+      {spectacle && (
+        <StreakSpectacle
+          moment={spectacle}
+          onDismiss={() => setSpectacle(null)}
+        />
+      )}
       <header className="page-header">
         <div>
           <span className="eyebrow">Ritmos y constancia</span>

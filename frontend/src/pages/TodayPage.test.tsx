@@ -29,7 +29,8 @@ function response(body: unknown): Response {
 describe("TodayPage", () => {
   it("celebrates only after a confirmed check-in", async () => {
     const today = toDateKey(new Date());
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    let checked = false;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url.includes("weekly-summary")) {
         return response({
@@ -38,16 +39,19 @@ describe("TodayPage", () => {
           habits: [
             {
               habit,
-              check_in_dates: [],
-              completed_count: 0,
+              check_in_dates: checked ? [today] : [],
+              completed_count: checked ? 1 : 0,
               target_count: 7,
-              current_streak: 0,
+              current_streak: checked ? 1 : 0,
             },
           ],
         });
       }
       if (url.endsWith("/habits")) {
         return response([habit]);
+      }
+      if (init?.method === "PUT") {
+        checked = true;
       }
       return response({
         id: 3,
@@ -82,7 +86,7 @@ describe("TodayPage", () => {
     );
 
     expect(
-      await screen.findByText(`${habit.name} quedó completado`),
+      await screen.findByText("Tu día floreció"),
     ).toBeInTheDocument();
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(

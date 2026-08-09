@@ -27,7 +27,8 @@ function response(body: unknown): Response {
 
 describe("HabitsPage", () => {
   it("loads a habit and sends its daily check-in", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    let checked = false;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url.includes("weekly-summary")) {
         return response({
@@ -36,16 +37,19 @@ describe("HabitsPage", () => {
           habits: [
             {
               habit,
-              check_in_dates: [],
-              completed_count: 0,
+              check_in_dates: checked ? ["2026-08-08"] : [],
+              completed_count: checked ? 7 : 6,
               target_count: 7,
-              current_streak: 0,
+              current_streak: checked ? 1 : 0,
             },
           ],
         });
       }
       if (url.endsWith("/habits")) {
         return response([habit]);
+      }
+      if (init?.method === "PUT") {
+        checked = true;
       }
       return response({
         id: 1,
@@ -88,7 +92,7 @@ describe("HabitsPage", () => {
       );
     });
     expect(
-      await screen.findByText(`${habit.name} avanzó`),
+      await screen.findByText("El ritmo está completo"),
     ).toBeInTheDocument();
     expect(screen.getByText("días")).toBeInTheDocument();
 

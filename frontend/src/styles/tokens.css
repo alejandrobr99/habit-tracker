@@ -32,6 +32,10 @@
   --gold: #a57b39;
   --gold-soft: #e9d9b8;
   --gold-ink: #725a2f;
+  --spectacle-coral: #d46f4d;
+  --spectacle-gold: #e5b54c;
+  --spectacle-mint: #70a68a;
+  --spectacle-plum: #8b6fa8;
   --danger: #7d4d49;
   --focus: #315a73;
   --shadow-dialog: 0 8px 24px rgb(32 35 31 / 8%);
@@ -45,6 +49,8 @@
   --motion-state: 160ms;
   --motion-emphasis: 320ms;
   --motion-celebration: 600ms;
+  --motion-spectacle: 1200ms;
+  --motion-spectacle: 1200ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
   --transition: var(--motion-state) var(--ease-out);

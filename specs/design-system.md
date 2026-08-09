@@ -130,8 +130,8 @@ La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 - Una racha interrumpida ofrece continuidad o recuperación con texto neutral; no usa pérdida visual,
   colores destructivos ni mensajes de culpa.
 - El check-in confirmado puede usar una celebración local; nivel, insignia, desafío y recompensa
-  alcanzados pueden usar una celebración de hito. Duran como máximo 600 ms, pueden descartarse y no
-  bloquean navegación ni entrada.
+  alcanzados pueden usar una celebración de hito de hasta 600 ms. Los hitos de racha y meta
+  especificados pueden usar la escena excepcional definida en Movimiento.
 - Con `prefers-reduced-motion`, la celebración es una confirmación estática sin confeti,
   desplazamiento ni transformación.
 
@@ -160,13 +160,18 @@ ni iconos rellenos de estilos mezclados.
 | `motion-state` | 160 ms | Estado, hover, foco y check-in |
 | `motion-emphasis` | 320 ms | Progreso y entrada de feedback |
 | `motion-celebration` | 600 ms | Secuencia de hito no bloqueante |
+| `motion-spectacle` | 1200 ms | Escena excepcional de racha o meta completa |
 
 - Usar una curva de salida rápida para entradas y estado; la respuesta comienza de inmediato.
 - Animar opacidad y transformación; evitar animar layout, desenfoque grande o dimensiones.
 - Una microrespuesta permanece en el componente que originó la acción.
 - Una celebración combina como máximo tres capas: superficie, símbolo y partículas orgánicas.
+- Una celebración escénica puede ocupar el viewport y combinar cinco capas finitas: velo, rayos,
+  órbitas, emblema y partículas. No captura puntero salvo su control de cierre.
 - Las partículas son abstractas, finitas y locales; nunca simulan moneda, premio aleatorio o
   actividad social.
+- La escena empieza a desaparecer después de 2200 ms y se retira automáticamente; el usuario puede
+  cerrarla antes.
 - No usar rebote repetitivo, parallax, giro continuo, destello, estrobo ni movimiento automático.
 - Con movimiento reducido, sustituir desplazamiento, escala y partículas por cambio estático de
   borde, color, símbolo y texto.
@@ -201,7 +206,7 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
 - **D-DS-03:** usar bordes antes que sombras para expresar agrupación.
 - **D-DS-04:** no ofrecer tema oscuro en la primera etapa.
 - **D-DS-05:** mantener el movimiento breve, funcional y reducible.
-- **D-DS-06:** permitir celebraciones puntuales de hasta 600 ms solo para logros explícitos, con
+- **D-DS-06:** permitir celebraciones puntuales de hasta 600 ms para logros ordinarios, con
   alternativa estática y sin interrupción del flujo.
 - **D-DS-07:** presentar la gamificación como contexto secundario y privado, sin señales de pérdida,
   comparación social o juicio personal.
@@ -213,7 +218,9 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
   presencia más sobria, reduciendo la saturación de superficies, selección y estados.
 - **D-DS-11:** evolucionar la dirección hacia una presencia orgánica y celebratoria mediante tonos
   secundarios, motivos botánicos abstractos y profundidad mineral, sin competir con la tarea.
-- **D-DS-12:** adoptar cuatro tokens de duración y limitar cada celebración a tres capas finitas,
-  activadas solo por una acción confirmada.
+- **D-DS-12:** limitar celebraciones ordinarias a tres capas finitas, activadas solo por una acción
+  confirmada.
 - **D-DS-13:** permitir lavados radiales decorativos de bajo contraste, pero no degradados como
   superficie funcional ni como portadores de significado.
+- **D-DS-14:** permitir una escena de viewport de hasta 1200 ms únicamente para los hitos definidos
+  en `003-gamification.md`, con cierre, retirada automática y alternativa estática.

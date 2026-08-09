@@ -7,7 +7,12 @@ import { Button } from "../components/ui/Button";
 import { Celebration } from "../components/ui/Celebration";
 import { OrganicMotif } from "../components/ui/OrganicMotif";
 import { StatusPanel } from "../components/ui/StatusPanel";
+import { StreakSpectacle } from "../components/ui/StreakSpectacle";
 import { plannerApi } from "../lib/api";
+import {
+  selectCheckInSpectacle,
+  type SpectacleMoment,
+} from "../lib/celebrations";
 import { formatLongDate, startOfWeek, toDateKey } from "../lib/date";
 
 export function TodayPage() {
@@ -15,6 +20,7 @@ export function TodayPage() {
     id: number;
     name: string;
   } | null>(null);
+  const [spectacle, setSpectacle] = useState<SpectacleMoment | null>(null);
   const today = new Date();
   const todayKey = toDateKey(today);
   const weekKey = toDateKey(startOfWeek(today));
@@ -44,15 +50,44 @@ export function TodayPage() {
     onSuccess: async (_, variables) => {
       if (variables.checked) {
         setCelebratedHabit(null);
-      } else {
-        const habit = habitsQuery.data?.find(
-          (item) => item.id === variables.habitId,
-        );
-        if (habit) {
-          setCelebratedHabit({ id: habit.id, name: habit.name });
-        }
+        setSpectacle(null);
+        await queryClient.invalidateQueries({ queryKey: ["weekly-summary"] });
+        return;
       }
-      await queryClient.invalidateQueries({ queryKey: ["weekly-summary"] });
+
+      const habit = habitsQuery.data?.find(
+        (item) => item.id === variables.habitId,
+      );
+      const before = summaryQuery.data?.habits.find(
+        (item) => item.habit.id === variables.habitId,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["weekly-summary", weekKey],
+        refetchType: "none",
+      });
+      const updated = await queryClient.fetchQuery({
+        queryKey: ["weekly-summary", weekKey],
+        queryFn: () => plannerApi.getWeeklySummary(weekKey),
+      });
+      const after = updated.habits.find(
+        (item) => item.habit.id === variables.habitId,
+      );
+      const moment = before && after
+        ? selectCheckInSpectacle({
+            after,
+            before,
+            date: todayKey,
+            summaries: updated.habits,
+            todayKey,
+          })
+        : null;
+
+      if (moment) {
+        setCelebratedHabit(null);
+        setSpectacle(moment);
+      } else if (habit) {
+        setCelebratedHabit({ id: habit.id, name: habit.name });
+      }
     },
   });
 
@@ -84,6 +119,12 @@ export function TodayPage() {
 
   return (
     <div className="page">
+      {spectacle && (
+        <StreakSpectacle
+          moment={spectacle}
+          onDismiss={() => setSpectacle(null)}
+        />
+      )}
       <header className="today-header">
         <div className="today-hero-copy">
           <span className="eyebrow">{formatLongDate(today)}</span>

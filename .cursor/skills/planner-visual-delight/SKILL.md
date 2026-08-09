@@ -57,6 +57,13 @@ Para nivel, insignia, desafío o recompensa confirmados. Puede combinar superfic
 partículas orgánicas durante `motion-celebration`. Es descartable, no bloqueante y no se repite al
 recargar un estado ya conocido.
 
+### Celebración escénica
+
+Para los hitos de racha y meta definidos en `specs/003-gamification.md`. Puede ocupar el viewport
+durante `motion-spectacle` con velo, rayos, órbitas, emblema y partículas finitas. No captura puntero
+salvo el cierre, desaparece automáticamente y se convierte en una confirmación estática con
+movimiento reducido.
+
 ## Lenguaje visual
 
 - Usa piedra, carbón oliváceo y verde profundo como base.
@@ -99,6 +106,7 @@ Con `prefers-reduced-motion: reduce`:
 | Evento | Feedback permitido | No usar |
 | --- | --- | --- |
 | Check-in creado | Celebración local | Modal, confeti global |
+| Racha o meta alcanzada | Celebración escénica | Repetición continua, bloqueo |
 | Check-in eliminado | Confirmación funcional | Celebración |
 | Racha recuperada | Restauración estática o halo suave | Check-in falso, XP |
 | Nivel alcanzado | Celebración de hito | Bloqueo de navegación |
