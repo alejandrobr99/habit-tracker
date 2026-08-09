@@ -26,7 +26,8 @@ contratos inconsistentes, configuración implícita y falta de verificación aut
 - Ruff como formatter e inspector único.
 - pytest, pytest-cov y TestClient para contratos HTTP.
 - Alembic como único mecanismo de cambio de esquema.
-- Configuración por `PLANNER_DATABASE_URL` y `PLANNER_FRONTEND_ORIGINS`.
+- Configuración por `PLANNER_DATABASE_URL`, `PLANNER_API_PREFIX` y
+  `PLANNER_FRONTEND_ORIGINS`.
 
 ### Frontend
 

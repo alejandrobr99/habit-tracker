@@ -23,7 +23,7 @@ resolver una decisión técnica. Cambiar un principio requiere una decisión exp
 ## 3. Parametrización con propósito
 
 - Parametrizar valores que cambian entre entornos o instalaciones: URL de base de datos, orígenes
-  permitidos y URL pública del backend.
+  permitidos, prefijo de API y URL pública del backend.
 - Mantener como código versionado las reglas de producto, tokens de diseño y decisiones de dominio.
 - Cada parámetro debe tener nombre, valor local seguro, validación y documentación.
 - No convertir constantes internas en configuración sin un caso real de variación.
