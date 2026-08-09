@@ -56,7 +56,7 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
 
 ### Identidad y tiempo
 
-- Todos los recursos tienen `id` opaco, `created_at` y `updated_at`.
+- Todos los recursos tienen `id` estable, `created_at` y `updated_at`.
 - El único usuario inicial es implícito; no se expone autenticación hasta especificarla.
 - `date` representa el día local elegido por el usuario.
 - El backend conserva instantes en UTC y el frontend presenta la zona configurada.
