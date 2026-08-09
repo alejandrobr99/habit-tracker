@@ -3,8 +3,13 @@
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, sessionmaker
+
+from app.models import StreakRecovery
 
 CHALLENGE_TOTAL_XP = 50
 LEDGER_ENTRY_COUNT = 2
@@ -195,3 +200,30 @@ def test_streak_recovery_and_challenge_validation(client: TestClient):
         params={"week_start": (monday + timedelta(weeks=5)).isoformat()},
     )
     assert missing.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_database_rejects_two_recoveries_for_the_same_habit_month(
+    client: TestClient,
+    session_factory: sessionmaker[Session],
+):
+    habit_id = create_habit(client, "Monthly recovery")
+    with session_factory() as db:
+        db.add(
+            StreakRecovery(
+                habit_id=habit_id,
+                recovered_date=datetime(2026, 8, 1, tzinfo=UTC).date(),
+                recovery_month="2026-08",
+            ),
+        )
+        db.commit()
+
+    with session_factory() as db:
+        db.add(
+            StreakRecovery(
+                habit_id=habit_id,
+                recovered_date=datetime(2026, 8, 2, tzinfo=UTC).date(),
+                recovery_month="2026-08",
+            ),
+        )
+        with pytest.raises(IntegrityError):
+            db.commit()

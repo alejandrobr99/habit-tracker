@@ -339,18 +339,34 @@ def create_recovery(
     )
     if existing is not None:
         return existing
-    month_prefix = recovered_date.strftime("%Y-%m")
+    recovery_month = recovered_date.strftime("%Y-%m")
     monthly = db.scalar(
         select(StreakRecovery.id).where(
             StreakRecovery.habit_id == habit_id,
-            func.strftime("%Y-%m", StreakRecovery.recovered_date) == month_prefix,
+            StreakRecovery.recovery_month == recovery_month,
         ),
     )
     if monthly is not None:
         raise GamificationConflictError
-    recovery = StreakRecovery(habit_id=habit_id, recovered_date=recovered_date)
+    recovery = StreakRecovery(
+        habit_id=habit_id,
+        recovered_date=recovered_date,
+        recovery_month=recovery_month,
+    )
     db.add(recovery)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as error:
+        db.rollback()
+        existing = db.scalar(
+            select(StreakRecovery).where(
+                StreakRecovery.habit_id == habit_id,
+                StreakRecovery.recovered_date == recovered_date,
+            ),
+        )
+        if existing is None:
+            raise GamificationConflictError from error
+        return existing
     db.refresh(recovery)
     return recovery
 

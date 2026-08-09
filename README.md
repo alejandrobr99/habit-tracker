@@ -8,6 +8,7 @@ administrar presupuestos mensuales y reconocer avances sin comparaciones sociale
 
 ```text
 .
+├── Makefile    Comandos locales de instalación, ejecución y calidad
 ├── backend/    API en Python 3.11, gestionada con uv
 ├── frontend/   Aplicación web TypeScript, gestionada con npm
 ├── specs/      Producto, contratos, aceptación y sistema de diseño
@@ -35,6 +36,37 @@ Las especificaciones vigentes son:
 
 La regla `.cursor/rules/spec-driven.mdc` mantiene este flujo. La skill
 `.cursor/skills/planner-design/SKILL.md` guía la creación y revisión de interfaces.
+
+## Comandos rápidos
+
+Desde la raíz del repositorio:
+
+```bash
+make setup
+make dev
+```
+
+`make setup` instala dependencias y aplica las migraciones. `make dev` inicia backend y frontend
+en paralelo con recarga automática. La aplicación queda disponible en `http://localhost:5173` y
+la documentación de la API en `http://localhost:8000/docs`. Usa `Ctrl+C` para detener ambos
+procesos.
+
+Para validar cambios:
+
+```bash
+make check
+```
+
+Otros comandos útiles:
+
+```bash
+make help       # Lista todos los comandos
+make test       # Pruebas de backend y frontend
+make lint       # Ruff y Oxlint
+make format     # Formatea Python con Ruff
+make refresh    # Dependencias, migraciones y verificación completa
+make preview    # Build de frontend y servidores sin recarga automática
+```
 
 ## Backend
 

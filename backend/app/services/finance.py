@@ -3,6 +3,7 @@
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -202,15 +203,25 @@ def put_budget(
         Budget.category_id == category_id,
     )
     budget = db.scalar(statement)
-    created = budget is None
     if budget is None:
         budget = Budget(month=month, category_id=category_id, limit_minor=limit_minor)
         db.add(budget)
-    else:
-        budget.limit_minor = limit_minor
-        budget.updated_at = datetime.now(UTC)
+        try:
+            db.flush()
+        except IntegrityError as error:
+            db.rollback()
+            budget = db.scalar(statement)
+            if budget is None:
+                raise FinanceConflictError from error
+            budget.limit_minor = limit_minor
+            budget.updated_at = datetime.now(UTC)
+            db.flush()
+            return budget, False
+        return budget, True
+    budget.limit_minor = limit_minor
+    budget.updated_at = datetime.now(UTC)
     db.flush()
-    return budget, created
+    return budget, False
 
 
 def delete_budget(db: Session, month: str, category_id: int) -> None:

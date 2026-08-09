@@ -153,12 +153,15 @@ El canje se crea en la misma transacción que su entrada negativa de XP. XP insu
 | `id` | integer | Generado por la base de datos |
 | `habit_id` | integer | Hábito diario activo |
 | `recovered_date` | date | Fecha ausente recuperada |
+| `recovery_month` | string | `YYYY-MM` derivado, persistido solo para unicidad |
 | `created_at` | datetime | UTC, solo lectura |
 
-`habit_id + recovered_date` es único. Se permite una recuperación por hábito y mes civil de
+`habit_id + recovered_date` y `habit_id + recovery_month` son únicos en la base de datos.
+`recovery_month` no se expone en la API. Se permite una recuperación por hábito y mes civil de
 `recovered_date`, para una de las dos fechas anteriores a hoy, si no existe check-in. Cuenta
 únicamente para continuidad de racha: no crea `HabitCheckIn`, XP, progreso de desafío ni insignia.
-No puede eliminarse.
+No puede eliminarse. Dos solicitudes concurrentes para fechas distintas del mismo mes producen una
+creación y un conflicto `409`.
 
 ### FinanceWeeklyReview
 
@@ -239,6 +242,7 @@ Todas las rutas usan `/api/v1`, el contrato común de errores y el usuario impl�
 - Un desafío completado genera XP una sola vez; expirar o eliminar no resta XP.
 - Un canje concurrente no puede dejar `available_xp` negativo y una clave repetida no cobra dos veces.
 - Una recuperación elegible preserva la racha sin crear check-in, XP, desafío ni insignia.
+- La base de datos impide dos recuperaciones concurrentes para el mismo hábito y mes.
 - Insignias y ledger no contienen nombres, notas, importes ni datos públicos.
 - Toda celebración es descartable, no bloquea el flujo y tiene alternativa sin movimiento.
 - Ausencias, retos expirados y XP insuficiente usan lenguaje neutral y nunca vergüenza o presión.
@@ -263,3 +267,7 @@ Todas las rutas usan `/api/v1`, el contrato común de errores y el usuario impl�
 - **D-003-12:** usar celebraciones breves, descartables y estáticas con movimiento reducido.
 - **D-003-13:** conservar el XP histórico al eliminar un check-in y usar hábito más fecha como clave
   para impedir que recrearlo duplique el reconocimiento.
+- **D-003-14:** persistir el mes derivado de una recuperación y exigir unicidad por hábito y mes en
+  la base de datos para que el límite sea atómico.
+- **D-003-15:** al migrar datos inválidos con varias recuperaciones del mismo hábito y mes, conservar
+  la de menor `id` y retirar las posteriores antes de crear la restricción.

@@ -13,10 +13,10 @@ from app.main import app
 
 
 @pytest.fixture
-def client(
+def session_factory(
     tmp_path: Path,
-) -> Generator[TestClient, None, None]:
-    """Provide an API client backed by a temporary SQLite database."""
+) -> Generator[sessionmaker[Session], None, None]:
+    """Provide sessions backed by a temporary SQLite database."""
     database_path = tmp_path / "planner-test.db"
     engine = create_engine(
         f"sqlite:///{database_path}",
@@ -28,14 +28,22 @@ def client(
         expire_on_commit=False,
     )
     Base.metadata.create_all(engine)
+    yield testing_session
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+
+
+@pytest.fixture
+def client(
+    session_factory: sessionmaker[Session],
+) -> Generator[TestClient, None, None]:
+    """Provide an API client backed by the temporary database."""
 
     def override_get_db() -> Generator[Session, None, None]:
-        with testing_session() as session:
+        with session_factory() as session:
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
-    Base.metadata.drop_all(engine)
-    engine.dispose()

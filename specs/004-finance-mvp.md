@@ -184,6 +184,9 @@ recurso inexistente responde `404`.
 Mes o límite inválidos responden `422`; categoría inexistente responde `404`; categoría de ingreso
 o archivada responde `409`. Un presupuesto inexistente al eliminar responde `404`. Reemplazar un
 límite no genera XP adicional.
+Dos `PUT` concurrentes para el mismo mes y categoría convergen en el único presupuesto persistido.
+La solicitud que pierde la carrera de inserción recupera el recurso, aplica su límite y responde
+`200`; una violación de unicidad no se expone como error interno.
 
 ### Resumen
 
@@ -233,6 +236,8 @@ moneda base responde `409`; un mes inválido responde `422`.
 - Un movimiento exige categoría compatible con `type` y persiste después de recargar.
 - Listar por mes incluye exactamente las fechas civiles de ese `YYYY-MM`.
 - Un presupuesto es único por mes y categoría, y `PUT` crea o reemplaza de forma determinista.
+- Dos creaciones concurrentes del mismo presupuesto producen un solo recurso y respuestas
+  controladas, sin `IntegrityError` expuesto.
 - El resumen calcula ingresos, gastos, balance y presupuestos a partir de los datos persistidos.
 - Un mes vacío devuelve ceros reales y nunca cifras de demostración.
 - El MVP no expone rutas ni controles funcionales de cuentas, transferencias, bancos, importación o
@@ -256,3 +261,5 @@ moneda base responde `409`; un mes inválido responde `422`.
 - **D-004-10:** usar lenguaje neutral y no inferir calidad moral a partir de montos o presupuestos.
 - **D-004-11:** limitar la gamificación financiera al primer presupuesto y a la revisión semanal
   definida en la especificación de gamificación.
+- **D-004-12:** recuperar el presupuesto persistido cuando un `PUT` pierde una inserción concurrente
+  y aplicar sobre él el límite solicitado.

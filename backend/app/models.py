@@ -380,11 +380,13 @@ class StreakRecovery(Base):
     __tablename__ = "streak_recoveries"
     __table_args__ = (
         UniqueConstraint("habit_id", "recovered_date", name="uq_recovery_habit_date"),
+        UniqueConstraint("habit_id", "recovery_month", name="uq_recovery_habit_month"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     habit_id: Mapped[int] = mapped_column(ForeignKey("habits.id"), index=True)
     recovered_date: Mapped[date] = mapped_column(Date)
+    recovery_month: Mapped[str] = mapped_column(String(7))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
 
 

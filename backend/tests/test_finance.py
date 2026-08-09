@@ -2,6 +2,11 @@
 
 from fastapi import status
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, sessionmaker
+
+from app.models import Budget
+from app.services import finance as finance_service
 
 MINOR_UNIT = 2
 INCOME_AMOUNT = 500_00
@@ -217,3 +222,47 @@ def test_finance_validation_and_missing_settings(client: TestClient):
         },
     )
     assert invalid_amount.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
+def test_budget_put_recovers_when_a_concurrent_insert_wins(
+    client: TestClient,
+    session_factory: sessionmaker[Session],
+    monkeypatch,
+):
+    _, expense_id = configure_finance(client)
+    month = "2026-08"
+    competing_limit = 100_00
+    requested_limit = 180_00
+
+    with session_factory() as db:
+        original_flush = db.flush
+        race_triggered = False
+
+        def flush_with_competing_insert(objects=None):
+            nonlocal race_triggered
+            if not race_triggered:
+                race_triggered = True
+                with session_factory() as competitor:
+                    competitor.add(
+                        Budget(
+                            month=month,
+                            category_id=expense_id,
+                            limit_minor=competing_limit,
+                        ),
+                    )
+                    competitor.commit()
+                raise IntegrityError("INSERT finance_budgets", {}, Exception("unique"))
+            return original_flush(objects)
+
+        monkeypatch.setattr(db, "flush", flush_with_competing_insert)
+        budget, created = finance_service.put_budget(
+            db,
+            month,
+            expense_id,
+            requested_limit,
+        )
+        db.commit()
+
+        assert created is False
+        assert budget.limit_minor == requested_limit
+        assert len(finance_service.list_budgets(db, month)) == 1
