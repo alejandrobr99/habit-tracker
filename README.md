@@ -22,7 +22,7 @@ Las especificaciones vigentes son:
 - `specs/001-habit-tracker.md`: primera funcionalidad completa.
 - `specs/002-finance-shell.md`: estructura inicial del módulo financiero.
 - `specs/003-gamification.md`: progreso, insignias, desafíos y recompensas privadas.
-- `specs/004-finance-mvp.md`: movimientos, categorías, presupuestos y resumen mensual.
+- `specs/004-deployment.md`: Railpack, acceso compartido y despliegue personal.
 - `specs/design-system.md`: lenguaje visual, componentes y accesibilidad.
 - `specs/development-readiness.md`: controles mínimos y decisiones diferidas.
 
@@ -127,6 +127,37 @@ npm run build
 
 La integración continua repite estos controles y comprueba que la migración de Alembic pueda crear
 el esquema desde cero.
+
+## Primer despliegue en Railway
+
+Railway usa `railpack.json` para instalar Node 22, Python 3.11 y `uv`, construir React y ejecutar
+FastAPI. Railpack es abierto y no requiere Docker Desktop, una licencia de Docker ni instalar una
+herramienta adicional.
+
+El despliegue requiere un servicio, un volumen y dos variables secretas:
+
+1. Crea un proyecto en Railway y conecta este repositorio de GitHub. Railway detectará
+   `railpack.json` y `railway.json`.
+2. Añade un volumen al servicio y usa exactamente `/data` como ruta de montaje. Mantén una sola
+   réplica porque la instancia usa SQLite.
+3. En **Variables**, define `PLANNER_ACCESS_USERNAME` y `PLANNER_ACCESS_PASSWORD`. Usa una
+   contraseña larga, única y generada aleatoriamente; no la guardes en el repositorio.
+4. En **Networking**, selecciona **Generate Domain**. Railway publicará el servicio con HTTPS y
+   comprobará `/health` antes de dirigir tráfico.
+
+No necesitas configurar `PORT`, la URL de SQLite, CORS ni la URL de la API: `railpack.json` ya
+declara los valores no secretos correctos para Railway. El comando de arranque aplica las
+migraciones antes de iniciar Uvicorn. Si luego añades un dominio propio, incorpora su host a
+`PLANNER_ALLOWED_HOSTS`, por ejemplo
+`["*.up.railway.app","healthcheck.railway.app","planner.example.com"]`.
+
+En el iPhone, abre la dirección `https://...up.railway.app` en Safari e introduce la credencial.
+Puedes usar **Compartir → Añadir a pantalla de inicio** para tener un acceso directo. Railway
+termina TLS; las credenciales nunca deben usarse sobre una URL HTTP pública.
+
+La contraseña compartida protege esta primera instancia personal, pero no crea cuentas ni separa
+datos por usuario. Habilita snapshots del volumen cuando estén disponibles en tu plan de Railway y
+rota la contraseña desde **Variables** si crees que fue expuesta.
 
 ## Prueba local en cinco minutos
 

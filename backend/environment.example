@@ -1,3 +1,6 @@
+PLANNER_ENVIRONMENT=development
 PLANNER_DATABASE_URL=sqlite:///./personal_planner.db
 PLANNER_API_PREFIX=/api/v1
 PLANNER_FRONTEND_ORIGINS=["http://localhost:5173"]
+PLANNER_ALLOWED_HOSTS=["localhost","127.0.0.1","testserver"]
+PLANNER_REQUIRE_AUTH=false

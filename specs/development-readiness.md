@@ -28,6 +28,7 @@ contratos inconsistentes, configuración implícita y falta de verificación aut
 - Alembic como único mecanismo de cambio de esquema.
 - Configuración por `PLANNER_DATABASE_URL`, `PLANNER_API_PREFIX` y
   `PLANNER_FRONTEND_ORIGINS`.
+- El despliegue personal añade la configuración validada definida en `004-deployment.md`.
 
 ### Frontend
 
@@ -59,8 +60,15 @@ usan mocks en reglas puras; los límites HTTP y navegador sí pueden simularse.
 
 ## Diferido con intención
 
-- Autenticación y autorización.
+- Autenticación y autorización propias del producto; el primer despliegue usa la credencial
+  compartida especificada en `004-deployment.md`.
 - PostgreSQL, Redis, tareas en segundo plano y observabilidad remota.
-- Contenedores, despliegue cloud y sincronización offline.
+- Sincronización offline.
 - SDK generado desde OpenAPI; se reconsiderará cuando el contrato crezca.
 - Pruebas end-to-end en navegador; se añadirán cuando exista un flujo de versión desplegable.
+
+## Primer despliegue
+
+El servicio único construido con Railpack, el volumen SQLite, el acceso compartido y la
+configuración Railway se definen en `004-deployment.md`. Esta entrega no modifica el modelo de
+usuario implícito ni introduce autenticación multiusuario.

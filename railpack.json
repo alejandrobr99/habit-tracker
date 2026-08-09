@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "shell",
+  "packages": {
+    "node": "22",
+    "python": "3.11",
+    "uv": "0.7.21"
+  },
+  "steps": {
+    "install": {
+      "inputs": [
+        {
+          "step": "packages:mise"
+        },
+        {
+          "local": true
+        }
+      ],
+      "commands": [
+        {
+          "cmd": "cd frontend && npm ci",
+          "customName": "Instalar frontend"
+        },
+        {
+          "cmd": "cd backend && uv sync --frozen --no-dev",
+          "customName": "Instalar backend"
+        }
+      ],
+      "secrets": []
+    },
+    "build": {
+      "inputs": [
+        {
+          "step": "install"
+        }
+      ],
+      "commands": [
+        {
+          "cmd": "cd frontend && VITE_API_BASE_URL=/api/v1 npm run build",
+          "customName": "Construir frontend"
+        }
+      ],
+      "secrets": []
+    }
+  },
+  "deploy": {
+    "inputs": [
+      {
+        "step": "build"
+      }
+    ],
+    "paths": [
+      "/app/backend/.venv/bin"
+    ],
+    "startCommand": "sh /app/start.sh",
+    "variables": {
+      "PLANNER_ALLOWED_HOSTS": "[\"*.up.railway.app\",\"healthcheck.railway.app\",\"localhost\",\"127.0.0.1\"]",
+      "PLANNER_DATABASE_URL": "sqlite:////data/personal_planner.db",
+      "PLANNER_ENVIRONMENT": "production",
+      "PLANNER_FRONTEND_DIST": "/app/frontend/dist",
+      "PLANNER_FRONTEND_ORIGINS": "[]",
+      "PLANNER_REQUIRE_AUTH": "true",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONUNBUFFERED": "1"
+    }
+  }
+}
