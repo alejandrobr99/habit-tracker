@@ -74,7 +74,7 @@
     ],
     "startCommand": "sh /app/start.sh",
     "variables": {
-      "PLANNER_ALLOWED_HOSTS": "[\"*.up.railway.app\",\"healthcheck.railway.app\",\"localhost\",\"127.0.0.1\"]",
+      "PLANNER_ALLOWED_HOSTS": "[\"*.up.railway.app\",\"healthcheck.railway.app\",\"habit-tracker.co\",\"www.habit-tracker.co\",\"localhost\",\"127.0.0.1\"]",
       "PLANNER_DATABASE_URL": "sqlite:////data/personal_planner.db",
       "PLANNER_ENVIRONMENT": "production",
       "PLANNER_FRONTEND_DIST": "/app/frontend/dist",

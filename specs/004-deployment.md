@@ -56,7 +56,8 @@ finanzas no pueden quedar expuestos a lectura o escritura anónima.
 - `PLANNER_ENVIRONMENT=production`
 - `PLANNER_DATABASE_URL=sqlite:////data/personal_planner.db`
 - `PLANNER_FRONTEND_DIST=/app/frontend/dist`
-- `PLANNER_ALLOWED_HOSTS` incluye `*.up.railway.app` y `healthcheck.railway.app`.
+- `PLANNER_ALLOWED_HOSTS` incluye `*.up.railway.app`, `healthcheck.railway.app` y los dominios
+  personalizados configurados, como `habit-tracker.co` y `www.habit-tracker.co`.
 - `PLANNER_BOOTSTRAP_ADMIN_*` inicializa el primer administrador y su contraseña se retira después.
 - `VITE_API_BASE_URL=/api/v1` se fija durante el build del frontend.
 

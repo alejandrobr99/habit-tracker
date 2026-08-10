@@ -152,7 +152,7 @@ No necesitas configurar `PORT`, la URL de SQLite, CORS ni la URL de la API: `rai
 declara los valores no secretos correctos para Railway. El comando de arranque aplica las
 migraciones antes de iniciar Uvicorn. Si luego añades un dominio propio, incorpora su host a
 `PLANNER_ALLOWED_HOSTS`, por ejemplo
-`["*.up.railway.app","healthcheck.railway.app","planner.example.com"]`.
+`["*.up.railway.app","healthcheck.railway.app","habit-tracker.co","www.habit-tracker.co"]`.
 
 En el iPhone, abre la dirección `https://...up.railway.app` en Safari, entra con el administrador y
 cambia la contraseña temporal. Después elimina las tres variables `PLANNER_BOOTSTRAP_ADMIN_*` de
