@@ -18,11 +18,11 @@
       ],
       "commands": [
         {
-          "cmd": "npm --prefix frontend ci",
+          "cmd": "npm --prefix /app/frontend ci",
           "customName": "Instalar frontend"
         },
         {
-          "cmd": "uv --directory backend sync --frozen --no-dev",
+          "cmd": "uv --directory /app/backend sync --frozen --no-dev",
           "customName": "Instalar backend"
         }
       ],
@@ -36,7 +36,7 @@
       ],
       "commands": [
         {
-          "cmd": "npm --prefix frontend run build",
+          "cmd": "npm --prefix /app/frontend run build",
           "customName": "Construir frontend"
         }
       ],
