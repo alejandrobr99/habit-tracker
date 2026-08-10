@@ -1,10 +1,8 @@
 """FastAPI application entry point."""
 
-import base64
-import binascii
-import secrets
 from collections.abc import Awaitable, Callable
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,37 +10,15 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from app.auth import SESSION_COOKIE_NAME
 from app.config import Settings, get_settings
+from app.routers.admin import router as admin_router
+from app.routers.auth import router as auth_router
 from app.routers.finance import router as finance_router
 from app.routers.gamification import recovery_router
 from app.routers.gamification import router as gamification_router
 from app.routers.habits import router as habits_router
 from app.schemas import HealthRead
-
-
-def _has_valid_credentials(request: Request, settings: Settings) -> bool:
-    """Return whether a request contains the configured Basic credentials."""
-    authorization = request.headers.get("Authorization", "")
-    scheme, separator, encoded = authorization.partition(" ")
-    if scheme.lower() != "basic" or not separator or not encoded:
-        return False
-    try:
-        decoded = base64.b64decode(
-            encoded,
-            validate=True,
-        ).decode("utf-8")
-    except (binascii.Error, UnicodeDecodeError):
-        return False
-    username, separator, password = decoded.partition(":")
-    if not separator or settings.access_password is None or settings.access_username is None:
-        return False
-    return secrets.compare_digest(
-        username.encode(),
-        settings.access_username.encode(),
-    ) and secrets.compare_digest(
-        password.encode(),
-        settings.access_password.get_secret_value().encode(),
-    )
 
 
 def _add_frontend_routes(
@@ -110,23 +86,19 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     )
 
     @application.middleware("http")
-    async def require_access(
+    async def protect_authenticated_mutations(
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        """Protect all data and frontend routes when access control is enabled."""
+        """Reject cross-origin mutations made with a session cookie."""
         if (
-            settings.require_auth
-            and request.url.path != "/health"
-            and not _has_valid_credentials(
-                request,
-                settings,
-            )
+            request.method in {"POST", "PUT", "PATCH", "DELETE"}
+            and SESSION_COOKIE_NAME in request.cookies
+            and not _has_valid_origin(request, settings)
         ):
             return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Se requiere una credencial válida."},
-                headers={"WWW-Authenticate": 'Basic realm="Pleno", charset="UTF-8"'},
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={"detail": "Origen de solicitud no permitido."},
             )
         return await call_next(request)
 
@@ -143,6 +115,14 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         response.headers["Permissions-Policy"] = "camera=(), geolocation=(), microphone=()"
         return response
 
+    application.include_router(
+        auth_router,
+        prefix=settings.api_prefix,
+    )
+    application.include_router(
+        admin_router,
+        prefix=settings.api_prefix,
+    )
     application.include_router(
         habits_router,
         prefix=settings.api_prefix,
@@ -176,6 +156,17 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
             settings.api_prefix,
         )
     return application
+
+
+def _has_valid_origin(request: Request, settings: Settings) -> bool:
+    """Return whether a mutating browser request comes from an allowed origin."""
+    origin = request.headers.get("origin")
+    if not origin:
+        return False
+    if origin in settings.frontend_origins:
+        return True
+    parsed_origin = urlsplit(origin)
+    return parsed_origin.netloc == request.headers.get("host")
 
 
 app = create_app()

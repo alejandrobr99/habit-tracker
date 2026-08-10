@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
+from app.auth import ReadyUser
 from app.database import get_db
 from app.models import HabitStatus
 from app.schemas import (
@@ -27,6 +28,7 @@ DatabaseSession = Annotated[Session, Depends(get_db)]
 @router.get("", response_model=list[HabitRead])
 def get_habits(
     db: DatabaseSession,
+    user: ReadyUser,
     habit_status: Annotated[HabitStatus | None, Query(alias="status")] = HabitStatus.ACTIVE,
 ) -> list[HabitRead]:
     """List habits, optionally filtered by status."""
@@ -34,6 +36,7 @@ def get_habits(
         HabitRead.model_validate(habit)
         for habit in habit_service.list_habits(
             db,
+            user.id,
             habit_status,
         )
     ]
@@ -47,11 +50,13 @@ def get_habits(
 def post_habit(
     payload: HabitCreate,
     db: DatabaseSession,
+    user: ReadyUser,
 ) -> HabitRead:
     """Create a habit."""
     return HabitRead.model_validate(
         habit_service.create_habit(
             db,
+            user.id,
             payload,
         ),
     )
@@ -63,6 +68,7 @@ def post_habit(
 )
 def get_weekly_summary(
     db: DatabaseSession,
+    user: ReadyUser,
     week_start: date | None = None,
     habit_status: Annotated[HabitStatus | None, Query(alias="status")] = HabitStatus.ACTIVE,
 ) -> WeeklySummaryRead:
@@ -75,6 +81,7 @@ def get_weekly_summary(
         )
     return habit_service.build_weekly_summary(
         db,
+        user.id,
         selected_start,
         habit_status,
     )
@@ -88,11 +95,13 @@ def patch_habit(
     habit_id: int,
     payload: HabitUpdate,
     db: DatabaseSession,
+    user: ReadyUser,
 ) -> HabitRead:
     """Partially update a habit."""
     try:
         habit = habit_service.update_habit(
             db,
+            user.id,
             habit_id,
             payload,
         )
@@ -113,11 +122,13 @@ def patch_habit(
 def delete_habit(
     habit_id: int,
     db: DatabaseSession,
+    user: ReadyUser,
 ) -> HabitRead:
     """Archive a habit while retaining its check-in history."""
     try:
         habit = habit_service.archive_habit(
             db,
+            user.id,
             habit_id,
         )
     except habit_service.HabitNotFoundError as error:
@@ -133,11 +144,13 @@ def put_habit_check_in(
     habit_id: int,
     check_in_date: date,
     db: DatabaseSession,
+    user: ReadyUser,
 ) -> CheckInRead:
     """Idempotently record a habit completion on a date."""
     try:
         check_in, _ = habit_service.put_check_in(
             db,
+            user.id,
             habit_id,
             check_in_date,
         )
@@ -159,11 +172,13 @@ def delete_habit_check_in(
     habit_id: int,
     check_in_date: date,
     db: DatabaseSession,
+    user: ReadyUser,
 ) -> Response:
     """Remove a habit completion from a date."""
     try:
         habit_service.delete_check_in(
             db,
+            user.id,
             habit_id,
             check_in_date,
         )

@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
+from app.auth import ReadyUser
 from app.database import get_db
 from app.models import ResourceStatus
 from app.schemas import (
@@ -31,28 +32,32 @@ DatabaseSession = Annotated[Session, Depends(get_db)]
 
 
 @router.get("/progress", response_model=ProgressRead)
-def get_progress(db: DatabaseSession) -> ProgressRead:
+def get_progress(db: DatabaseSession, user: ReadyUser) -> ProgressRead:
     """Return calculated XP and level progress."""
-    return service.progress(db)
+    return service.progress(db, user.id)
 
 
 @router.get("/xp-entries", response_model=list[XpEntryRead])
-def get_xp_entries(db: DatabaseSession) -> list[XpEntryRead]:
+def get_xp_entries(db: DatabaseSession, user: ReadyUser) -> list[XpEntryRead]:
     """Return the immutable XP ledger."""
-    return [XpEntryRead.model_validate(item) for item in service.list_xp_entries(db)]
+    return [XpEntryRead.model_validate(item) for item in service.list_xp_entries(db, user.id)]
 
 
 @router.get("/badges", response_model=list[BadgeRead])
-def get_badges(db: DatabaseSession) -> list[BadgeRead]:
+def get_badges(db: DatabaseSession, user: ReadyUser) -> list[BadgeRead]:
     """Return all badge catalog entries."""
-    return service.list_badges(db)
+    return service.list_badges(db, user.id)
 
 
 @router.get("/weekly-challenges", response_model=WeeklyChallengeRead)
-def get_weekly_challenge(week_start: date, db: DatabaseSession) -> WeeklyChallengeRead:
+def get_weekly_challenge(
+    week_start: date,
+    db: DatabaseSession,
+    user: ReadyUser,
+) -> WeeklyChallengeRead:
     """Return a weekly challenge."""
     try:
-        return service.get_weekly_challenge(db, week_start)
+        return service.get_weekly_challenge(db, user.id, week_start)
     except service.GamificationNotFoundError as error:
         raise _not_found("Weekly challenge not found") from error
 
@@ -65,10 +70,11 @@ def get_weekly_challenge(week_start: date, db: DatabaseSession) -> WeeklyChallen
 def post_weekly_challenge(
     payload: WeeklyChallengeCreate,
     db: DatabaseSession,
+    user: ReadyUser,
 ) -> WeeklyChallengeRead:
     """Create one weekly challenge."""
     try:
-        return service.create_weekly_challenge(db, payload)
+        return service.create_weekly_challenge(db, user.id, payload)
     except service.GamificationNotFoundError as error:
         raise _not_found("Habit not found") from error
     except service.GamificationConflictError as error:
@@ -78,10 +84,14 @@ def post_weekly_challenge(
 
 
 @router.delete("/weekly-challenges/{challenge_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_weekly_challenge(challenge_id: int, db: DatabaseSession) -> Response:
+def delete_weekly_challenge(
+    challenge_id: int,
+    db: DatabaseSession,
+    user: ReadyUser,
+) -> Response:
     """Delete an active weekly challenge."""
     try:
-        service.delete_weekly_challenge(db, challenge_id)
+        service.delete_weekly_challenge(db, user.id, challenge_id)
     except service.GamificationNotFoundError as error:
         raise _not_found("Weekly challenge not found") from error
     except service.GamificationConflictError as error:
@@ -92,33 +102,49 @@ def delete_weekly_challenge(challenge_id: int, db: DatabaseSession) -> Response:
 @router.get("/rewards", response_model=list[RewardRead])
 def get_rewards(
     db: DatabaseSession,
+    user: ReadyUser,
     reward_status: Annotated[ResourceStatus, Query(alias="status")] = ResourceStatus.ACTIVE,
 ) -> list[RewardRead]:
     """List personal rewards."""
-    return [RewardRead.model_validate(item) for item in service.list_rewards(db, reward_status)]
+    return [
+        RewardRead.model_validate(item) for item in service.list_rewards(db, user.id, reward_status)
+    ]
 
 
 @router.post("/rewards", response_model=RewardRead, status_code=status.HTTP_201_CREATED)
-def post_reward(payload: RewardCreate, db: DatabaseSession) -> RewardRead:
+def post_reward(
+    payload: RewardCreate,
+    db: DatabaseSession,
+    user: ReadyUser,
+) -> RewardRead:
     """Create a personal reward."""
-    return RewardRead.model_validate(service.create_reward(db, payload))
+    return RewardRead.model_validate(service.create_reward(db, user.id, payload))
 
 
 @router.patch("/rewards/{reward_id}", response_model=RewardRead)
-def patch_reward(reward_id: int, payload: RewardUpdate, db: DatabaseSession) -> RewardRead:
+def patch_reward(
+    reward_id: int,
+    payload: RewardUpdate,
+    db: DatabaseSession,
+    user: ReadyUser,
+) -> RewardRead:
     """Update a personal reward."""
     try:
-        reward = service.update_reward(db, reward_id, payload)
+        reward = service.update_reward(db, user.id, reward_id, payload)
     except service.GamificationNotFoundError as error:
         raise _not_found("Reward not found") from error
     return RewardRead.model_validate(reward)
 
 
 @router.delete("/rewards/{reward_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_reward(reward_id: int, db: DatabaseSession) -> Response:
+def delete_reward(
+    reward_id: int,
+    db: DatabaseSession,
+    user: ReadyUser,
+) -> Response:
     """Archive a personal reward."""
     try:
-        service.archive_reward(db, reward_id)
+        service.archive_reward(db, user.id, reward_id)
     except service.GamificationNotFoundError as error:
         raise _not_found("Reward not found") from error
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -129,11 +155,13 @@ def post_redemption(
     payload: RedemptionCreate,
     response: Response,
     db: DatabaseSession,
+    user: ReadyUser,
 ) -> RedemptionRead:
     """Redeem a reward with an idempotency key."""
     try:
         redemption, created = service.redeem_reward(
             db,
+            user.id,
             payload.reward_id,
             str(payload.idempotency_key),
         )
@@ -146,9 +174,12 @@ def post_redemption(
 
 
 @router.get("/reward-redemptions", response_model=list[RedemptionRead])
-def get_redemptions(db: DatabaseSession) -> list[RedemptionRead]:
+def get_redemptions(
+    db: DatabaseSession,
+    user: ReadyUser,
+) -> list[RedemptionRead]:
     """List reward redemptions."""
-    return [RedemptionRead.model_validate(item) for item in service.list_redemptions(db)]
+    return [RedemptionRead.model_validate(item) for item in service.list_redemptions(db, user.id)]
 
 
 @recovery_router.post(
@@ -160,11 +191,13 @@ def post_streak_recovery(
     habit_id: int,
     payload: StreakRecoveryCreate,
     db: DatabaseSession,
+    user: ReadyUser,
 ) -> StreakRecoveryRead:
     """Recover an eligible missing daily streak date."""
     try:
         recovery = service.create_recovery(
             db,
+            user.id,
             habit_id,
             payload.recovered_date,
             today=datetime.now(UTC).date(),
@@ -183,11 +216,13 @@ def put_finance_review(
     week_start: date,
     response: Response,
     db: DatabaseSession,
+    user: ReadyUser,
 ) -> FinanceWeeklyReviewRead:
     """Create a weekly finance review idempotently."""
     try:
         review, created = service.put_finance_review(
             db,
+            user.id,
             week_start,
             today=datetime.now(UTC).date(),
         )

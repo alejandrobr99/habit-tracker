@@ -34,30 +34,48 @@ class FinanceConflictError(Exception):
     """Raised when a finance operation conflicts with persisted state."""
 
 
-def get_settings(db: Session) -> FinanceSettings:
+def get_settings(db: Session, user_id: int) -> FinanceSettings:
     """Return configured finance settings."""
-    settings = db.get(FinanceSettings, 1)
+    settings = db.scalar(
+        select(FinanceSettings).where(FinanceSettings.user_id == user_id),
+    )
     if settings is None:
         raise FinanceNotFoundError
     return settings
 
 
-def put_settings(db: Session, currency: str) -> tuple[FinanceSettings, bool]:
+def put_settings(db: Session, user_id: int, currency: str) -> tuple[FinanceSettings, bool]:
     """Create or idempotently update base-currency settings."""
     minor_unit = CURRENCIES.get(currency)
     if minor_unit is None:
         raise ValueError
-    settings = db.get(FinanceSettings, 1)
+    settings = db.scalar(
+        select(FinanceSettings).where(FinanceSettings.user_id == user_id),
+    )
     if settings is None:
-        settings = FinanceSettings(id=1, base_currency=currency, minor_unit=minor_unit)
+        settings = FinanceSettings(
+            user_id=user_id,
+            base_currency=currency,
+            minor_unit=minor_unit,
+        )
         db.add(settings)
         db.commit()
         db.refresh(settings)
         return settings, True
     if settings.base_currency == currency:
         return settings, False
-    has_transactions = db.scalar(select(FinanceTransaction.id).limit(1)) is not None
-    has_budgets = db.scalar(select(Budget.id).limit(1)) is not None
+    has_transactions = (
+        db.scalar(
+            select(FinanceTransaction.id).where(FinanceTransaction.user_id == user_id).limit(1),
+        )
+        is not None
+    )
+    has_budgets = (
+        db.scalar(
+            select(Budget.id).where(Budget.user_id == user_id).limit(1),
+        )
+        is not None
+    )
     if has_transactions or has_budgets:
         raise FinanceConflictError
     settings.base_currency = currency
@@ -68,33 +86,51 @@ def put_settings(db: Session, currency: str) -> tuple[FinanceSettings, bool]:
     return settings, False
 
 
-def list_categories(db: Session, category_status: ResourceStatus) -> list[Category]:
+def list_categories(
+    db: Session,
+    user_id: int,
+    category_status: ResourceStatus,
+) -> list[Category]:
     """List categories in stable type and case-insensitive name order."""
     statement = (
         select(Category)
-        .where(Category.status == category_status)
+        .where(
+            Category.user_id == user_id,
+            Category.status == category_status,
+        )
         .order_by(Category.type, func.lower(Category.name), Category.id)
     )
     return list(db.scalars(statement))
 
 
-def create_category(db: Session, payload: CategoryCreate) -> Category:
+def create_category(db: Session, user_id: int, payload: CategoryCreate) -> Category:
     """Create a unique active category."""
-    _ensure_unique_category(db, payload.name, payload.type)
-    category = Category(**payload.model_dump())
+    _ensure_unique_category(db, user_id, payload.name, payload.type)
+    category = Category(user_id=user_id, **payload.model_dump())
     db.add(category)
     db.commit()
     db.refresh(category)
     return category
 
 
-def update_category(db: Session, category_id: int, payload: CategoryUpdate) -> Category:
+def update_category(
+    db: Session,
+    user_id: int,
+    category_id: int,
+    payload: CategoryUpdate,
+) -> Category:
     """Update a category while preserving referenced type semantics."""
-    category = _get_category(db, category_id)
+    category = _get_category(db, user_id, category_id)
     values = payload.model_dump(exclude_unset=True)
     new_name = values.get("name", category.name)
     new_type = values.get("type", category.type)
-    _ensure_unique_category(db, new_name, new_type, exclude_id=category.id)
+    _ensure_unique_category(
+        db,
+        user_id,
+        new_name,
+        new_type,
+        exclude_id=category.id,
+    )
     if new_type != category.type:
         has_transaction = db.scalar(
             select(FinanceTransaction.id)
@@ -114,39 +150,56 @@ def update_category(db: Session, category_id: int, payload: CategoryUpdate) -> C
     return category
 
 
-def archive_category(db: Session, category_id: int) -> None:
+def archive_category(db: Session, user_id: int, category_id: int) -> None:
     """Archive a category without removing its history."""
-    category = _get_category(db, category_id)
+    category = _get_category(db, user_id, category_id)
     category.status = ResourceStatus.ARCHIVED
     category.updated_at = datetime.now(UTC)
     db.commit()
 
 
-def list_transactions(db: Session, month: str) -> list[FinanceTransaction]:
+def list_transactions(db: Session, user_id: int, month: str) -> list[FinanceTransaction]:
     """List transactions for one civil month."""
     start, end = month_bounds(month)
     statement = (
         select(FinanceTransaction)
-        .where(FinanceTransaction.date >= start, FinanceTransaction.date < end)
+        .where(
+            FinanceTransaction.user_id == user_id,
+            FinanceTransaction.date >= start,
+            FinanceTransaction.date < end,
+        )
         .order_by(FinanceTransaction.date.desc(), FinanceTransaction.id.desc())
     )
     return list(db.scalars(statement))
 
 
-def create_transaction(db: Session, payload: TransactionCreate) -> FinanceTransaction:
+def create_transaction(
+    db: Session,
+    user_id: int,
+    payload: TransactionCreate,
+) -> FinanceTransaction:
     """Create a transaction after validating settings and category."""
-    _require_settings(db)
-    _validate_category(db, payload.category_id, payload.type)
-    transaction = FinanceTransaction(**payload.model_dump())
+    _require_settings(db, user_id)
+    _validate_category(db, user_id, payload.category_id, payload.type)
+    transaction = FinanceTransaction(user_id=user_id, **payload.model_dump())
     db.add(transaction)
     db.commit()
     db.refresh(transaction)
     return transaction
 
 
-def get_transaction(db: Session, transaction_id: int) -> FinanceTransaction:
+def get_transaction(
+    db: Session,
+    user_id: int,
+    transaction_id: int,
+) -> FinanceTransaction:
     """Return one transaction."""
-    transaction = db.get(FinanceTransaction, transaction_id)
+    transaction = db.scalar(
+        select(FinanceTransaction).where(
+            FinanceTransaction.id == transaction_id,
+            FinanceTransaction.user_id == user_id,
+        ),
+    )
     if transaction is None:
         raise FinanceNotFoundError
     return transaction
@@ -154,15 +207,16 @@ def get_transaction(db: Session, transaction_id: int) -> FinanceTransaction:
 
 def update_transaction(
     db: Session,
+    user_id: int,
     transaction_id: int,
     payload: TransactionUpdate,
 ) -> FinanceTransaction:
     """Apply a validated partial transaction update."""
-    transaction = get_transaction(db, transaction_id)
+    transaction = get_transaction(db, user_id, transaction_id)
     values = payload.model_dump(exclude_unset=True)
     transaction_type = values.get("type", transaction.type)
     category_id = values.get("category_id", transaction.category_id)
-    _validate_category(db, category_id, transaction_type)
+    _validate_category(db, user_id, category_id, transaction_type)
     for field, value in values.items():
         setattr(transaction, field, value)
     transaction.updated_at = datetime.now(UTC)
@@ -171,19 +225,23 @@ def update_transaction(
     return transaction
 
 
-def delete_transaction(db: Session, transaction_id: int) -> None:
+def delete_transaction(db: Session, user_id: int, transaction_id: int) -> None:
     """Delete one transaction."""
-    transaction = get_transaction(db, transaction_id)
+    transaction = get_transaction(db, user_id, transaction_id)
     db.delete(transaction)
     db.commit()
 
 
-def list_budgets(db: Session, month: str) -> list[Budget]:
+def list_budgets(db: Session, user_id: int, month: str) -> list[Budget]:
     """List monthly budgets ordered by category name."""
     statement = (
         select(Budget)
         .join(Category, Category.id == Budget.category_id)
-        .where(Budget.month == month)
+        .where(
+            Budget.user_id == user_id,
+            Category.user_id == user_id,
+            Budget.month == month,
+        )
         .order_by(func.lower(Category.name), Budget.id)
     )
     return list(db.scalars(statement))
@@ -191,20 +249,27 @@ def list_budgets(db: Session, month: str) -> list[Budget]:
 
 def put_budget(
     db: Session,
+    user_id: int,
     month: str,
     category_id: int,
     limit_minor: int,
 ) -> tuple[Budget, bool]:
     """Create or replace a monthly category budget."""
-    _require_settings(db)
-    _validate_category(db, category_id, FinanceType.EXPENSE)
+    _require_settings(db, user_id)
+    _validate_category(db, user_id, category_id, FinanceType.EXPENSE)
     statement = select(Budget).where(
+        Budget.user_id == user_id,
         Budget.month == month,
         Budget.category_id == category_id,
     )
     budget = db.scalar(statement)
     if budget is None:
-        budget = Budget(month=month, category_id=category_id, limit_minor=limit_minor)
+        budget = Budget(
+            user_id=user_id,
+            month=month,
+            category_id=category_id,
+            limit_minor=limit_minor,
+        )
         db.add(budget)
         try:
             db.flush()
@@ -224,10 +289,19 @@ def put_budget(
     return budget, False
 
 
-def delete_budget(db: Session, month: str, category_id: int) -> None:
+def delete_budget(
+    db: Session,
+    user_id: int,
+    month: str,
+    category_id: int,
+) -> None:
     """Delete a monthly category budget."""
     budget = db.scalar(
-        select(Budget).where(Budget.month == month, Budget.category_id == category_id),
+        select(Budget).where(
+            Budget.user_id == user_id,
+            Budget.month == month,
+            Budget.category_id == category_id,
+        ),
     )
     if budget is None:
         raise FinanceNotFoundError
@@ -235,17 +309,22 @@ def delete_budget(db: Session, month: str, category_id: int) -> None:
     db.commit()
 
 
-def build_summary(db: Session, month: str) -> MonthlySummaryRead:
+def build_summary(db: Session, user_id: int, month: str) -> MonthlySummaryRead:
     """Derive a monthly summary from persisted transactions and budgets."""
-    settings = _require_settings(db)
-    transactions = list_transactions(db, month)
-    budgets = list_budgets(db, month)
+    settings = _require_settings(db, user_id)
+    transactions = list_transactions(db, user_id, month)
+    budgets = list_budgets(db, user_id, month)
     category_ids = {item.category_id for item in transactions} | {
         item.category_id for item in budgets
     }
     categories = {
         category.id: category
-        for category in db.scalars(select(Category).where(Category.id.in_(category_ids)))
+        for category in db.scalars(
+            select(Category).where(
+                Category.user_id == user_id,
+                Category.id.in_(category_ids),
+            ),
+        )
     }
     actuals: dict[int, int] = {}
     income = 0
@@ -299,17 +378,27 @@ def month_bounds(month: str) -> tuple[date, date]:
     return start, next_month
 
 
-def _get_category(db: Session, category_id: int) -> Category:
+def _get_category(db: Session, user_id: int, category_id: int) -> Category:
     """Return a category or raise."""
-    category = db.get(Category, category_id)
+    category = db.scalar(
+        select(Category).where(
+            Category.id == category_id,
+            Category.user_id == user_id,
+        ),
+    )
     if category is None:
         raise FinanceNotFoundError
     return category
 
 
-def _validate_category(db: Session, category_id: int, category_type: FinanceType) -> Category:
+def _validate_category(
+    db: Session,
+    user_id: int,
+    category_id: int,
+    category_type: FinanceType,
+) -> Category:
     """Require an active category matching the requested type."""
-    category = _get_category(db, category_id)
+    category = _get_category(db, user_id, category_id)
     if category.status != ResourceStatus.ACTIVE or category.type != category_type:
         raise FinanceConflictError
     return category
@@ -317,12 +406,14 @@ def _validate_category(db: Session, category_id: int, category_type: FinanceType
 
 def _ensure_unique_category(
     db: Session,
+    user_id: int,
     name: str,
     category_type: FinanceType,
     exclude_id: int | None = None,
 ) -> None:
     """Reject duplicate active category names without case sensitivity."""
     statement = select(Category.id).where(
+        Category.user_id == user_id,
         func.lower(Category.name) == name.casefold(),
         Category.type == category_type,
         Category.status == ResourceStatus.ACTIVE,
@@ -333,9 +424,9 @@ def _ensure_unique_category(
         raise FinanceConflictError
 
 
-def _require_settings(db: Session) -> FinanceSettings:
+def _require_settings(db: Session, user_id: int) -> FinanceSettings:
     """Require configured base-currency settings."""
     try:
-        return get_settings(db)
+        return get_settings(db, user_id)
     except FinanceNotFoundError as error:
         raise FinanceConflictError from error

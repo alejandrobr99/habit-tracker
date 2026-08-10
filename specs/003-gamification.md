@@ -11,7 +11,8 @@ presenta el reconocimiento sin presión, comparación ni pérdida punitiva.
 - Permitir un desafío semanal opcional y una recompensa personal definida por el usuario.
 - Conservar la continuidad de una racha diaria mediante una recuperación limitada y transparente.
 - Ofrecer retroalimentación visual inmediata y accesible después de un éxito confirmado.
-- Mantener la gamificación privada y secundaria frente a hábitos y finanzas.
+- Mantener la gamificación privada para la cuenta autenticada y secundaria frente a hábitos y
+  finanzas.
 
 ## No objetivos
 
@@ -170,6 +171,7 @@ fechas o entradas inválidas `422`.
   estática con `prefers-reduced-motion`.
 - Una celebración escénica se activa una vez por mutación confirmada y desaparece sin exigir acción.
 - Ningún texto usa culpa, comparación, amenaza de pérdida ni una afirmación clínica o conductual.
+- XP, insignias, desafíos, recompensas y revisiones se calculan solo con datos de su propietario.
 
 ## Decisiones registradas
 

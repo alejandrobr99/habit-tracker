@@ -21,7 +21,7 @@ productividad genérica ni en un sistema contable.
 
 ## No objetivos
 
-- Colaboración, cuentas familiares o espacios compartidos.
+- Registro público, cuentas familiares o espacios compartidos en esta etapa.
 - Comparaciones sociales, clasificaciones públicas o recompensas con valor monetario real.
 - Sincronización bancaria, asesoría financiera o contabilidad fiscal.
 - Calendario completo, gestión de proyectos o automatizaciones externas en la primera etapa.
@@ -40,9 +40,13 @@ productividad genérica ni en un sistema contable.
    recuperación de rachas reconocen acciones elegidas; nunca califican el carácter ni usan culpa,
    urgencia artificial o pérdida como castigo.
 
-La gamificación se define en `specs/003-gamification.md`. Es privada para el usuario implícito,
-puede ignorarse sin bloquear hábitos o finanzas y usa celebraciones breves que se reducen o
-eliminan con la preferencia de movimiento reducido.
+La gamificación se define en `specs/003-gamification.md`. Es privada para la cuenta actual, puede
+ignorarse sin bloquear hábitos o finanzas y usa celebraciones breves que se reducen o eliminan con
+la preferencia de movimiento reducido.
+
+La identidad, las sesiones y el aislamiento entre las cuentas administradas de la instancia se
+definen en `specs/005-multi-user-auth.md`. Cada persona conserva hábitos, finanzas y gamificación
+privados aunque comparta el despliegue.
 
 La toma de decisiones técnicas se rige por `specs/constitution.md`. En particular, solo se
 parametrizan valores que varían por entorno o instalación; las reglas de producto permanecen como
@@ -66,7 +70,8 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
 
 - Todos los recursos persistidos tienen `id` estable y `created_at`; los recursos mutables también
   tienen `updated_at`.
-- El único usuario inicial es implícito; no se expone autenticación hasta especificarla.
+- Cada recurso pertenece a la cuenta autenticada; ningún contrato de dominio acepta `user_id` del
+  cliente.
 - `date` representa el día local elegido por el usuario.
 - El backend conserva instantes en UTC y el frontend presenta la zona configurada.
 
@@ -86,7 +91,8 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
 - Respuestas exitosas de creación: `201`.
 - Validación: `422`; recurso inexistente: `404`; conflicto de estado: `409`.
 - Borrado exitoso sin cuerpo: `204`.
-- La paginación y autenticación quedan diferidas hasta que el volumen o despliegue las exijan.
+- La paginación queda diferida; autenticación y sesiones se definen en
+  `specs/005-multi-user-auth.md`.
 
 ## Estructura de navegación
 
@@ -137,9 +143,10 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
   revisión semanal, sin premiar montos, saldos ni cantidad de movimientos.
 - **D-000-10:** exigir `updated_at` solo en recursos mutables y conservar eventos inmutables con
   `created_at`.
+- **D-000-11:** evolucionar del usuario implícito a cuentas administradas con datos privados por
+  propietario, sin registro público.
 
 ## Preguntas abiertas
 
 - ¿La zona horaria será una preferencia persistida o se derivará siempre del navegador?
-- ¿Qué mecanismo de autenticación será adecuado cuando el producto deje de ser local?
 - ¿Cuándo el volumen real justificará paginación y una base de datos distinta de SQLite?

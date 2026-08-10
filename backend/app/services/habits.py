@@ -29,10 +29,11 @@ class HabitConflictError(Exception):
 
 def list_habits(
     db: Session,
+    user_id: int,
     status: HabitStatus | None,
 ) -> list[Habit]:
     """Return habits, optionally filtered by lifecycle status."""
-    statement = select(Habit).order_by(Habit.created_at, Habit.id)
+    statement = select(Habit).where(Habit.user_id == user_id).order_by(Habit.created_at, Habit.id)
     if status is not None:
         statement = statement.where(Habit.status == status)
     return list(db.scalars(statement))
@@ -40,10 +41,16 @@ def list_habits(
 
 def get_habit(
     db: Session,
+    user_id: int,
     habit_id: int,
 ) -> Habit:
     """Return a habit or raise when it does not exist."""
-    habit = db.get(Habit, habit_id)
+    habit = db.scalar(
+        select(Habit).where(
+            Habit.id == habit_id,
+            Habit.user_id == user_id,
+        ),
+    )
     if habit is None:
         raise HabitNotFoundError
     return habit
@@ -51,10 +58,11 @@ def get_habit(
 
 def create_habit(
     db: Session,
+    user_id: int,
     payload: HabitCreate,
 ) -> Habit:
     """Create and persist a habit."""
-    habit = Habit(**payload.model_dump())
+    habit = Habit(user_id=user_id, **payload.model_dump())
     db.add(habit)
     db.commit()
     db.refresh(habit)
@@ -63,11 +71,12 @@ def create_habit(
 
 def update_habit(
     db: Session,
+    user_id: int,
     habit_id: int,
     payload: HabitUpdate,
 ) -> Habit:
     """Apply a partial update to an existing habit."""
-    habit = get_habit(db, habit_id)
+    habit = get_habit(db, user_id, habit_id)
     values = payload.model_dump(exclude_unset=True)
     if "direction" in values and values["direction"] != habit.direction:
         has_check_in = db.scalar(
@@ -85,10 +94,11 @@ def update_habit(
 
 def archive_habit(
     db: Session,
+    user_id: int,
     habit_id: int,
 ) -> Habit:
     """Archive a habit without removing its history."""
-    habit = get_habit(db, habit_id)
+    habit = get_habit(db, user_id, habit_id)
     habit.status = HabitStatus.ARCHIVED
     habit.updated_at = datetime.now(UTC)
     db.commit()
@@ -98,11 +108,12 @@ def archive_habit(
 
 def put_check_in(
     db: Session,
+    user_id: int,
     habit_id: int,
     check_in_date: date,
 ) -> tuple[HabitCheckIn, bool]:
     """Create a check-in or return the existing check-in for the date."""
-    habit = get_habit(db, habit_id)
+    habit = get_habit(db, user_id, habit_id)
     if habit.status == HabitStatus.ARCHIVED:
         raise ArchivedHabitError
     statement = select(HabitCheckIn).where(
@@ -118,7 +129,7 @@ def put_check_in(
     )
     db.add(check_in)
     db.flush()
-    gamification.process_check_in(db, check_in)
+    gamification.process_check_in(db, user_id, check_in)
     db.commit()
     db.refresh(check_in)
     return check_in, True
@@ -126,11 +137,12 @@ def put_check_in(
 
 def delete_check_in(
     db: Session,
+    user_id: int,
     habit_id: int,
     check_in_date: date,
 ) -> None:
     """Delete a habit check-in for a date."""
-    get_habit(db, habit_id)
+    get_habit(db, user_id, habit_id)
     statement = select(HabitCheckIn).where(
         HabitCheckIn.habit_id == habit_id,
         HabitCheckIn.check_in_date == check_in_date,
@@ -190,12 +202,13 @@ def _calculate_weekly_streak(
 
 def build_weekly_summary(
     db: Session,
+    user_id: int,
     week_start: date,
     status: HabitStatus | None,
 ) -> WeeklySummaryRead:
     """Build habit completion and streak data for a Monday-based week."""
     week_end = week_start + timedelta(days=6)
-    habits = list_habits(db, status)
+    habits = list_habits(db, user_id, status)
     summaries = [
         _build_habit_summary(
             db,

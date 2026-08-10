@@ -16,6 +16,8 @@ from app.models import (
     HabitKind,
     HabitStatus,
     ResourceStatus,
+    UserRole,
+    UserStatus,
     XpSourceType,
 )
 
@@ -426,3 +428,90 @@ class FinanceWeeklyReviewRead(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LoginRequest(BaseModel):
+    """Credentials used to create a browser session."""
+
+    username: str = Field(min_length=1, max_length=40)
+    password: str = Field(min_length=1, max_length=128)
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def normalize_username(cls, value: object) -> object:
+        """Normalize usernames before authentication."""
+        return value.strip().lower() if isinstance(value, str) else value
+
+
+class UserRead(BaseModel):
+    """Account metadata visible to its owner or an administrator."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    display_name: str
+    role: UserRole
+    status: UserStatus
+    must_change_password: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class PasswordChangeRequest(BaseModel):
+    """Credentials required for a user-initiated password change."""
+
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
+
+
+class AdminUserCreate(BaseModel):
+    """Data used by an administrator to provision an account."""
+
+    username: str = Field(
+        min_length=3,
+        max_length=40,
+        pattern=r"^[a-z0-9._-]+$",
+    )
+    display_name: str = Field(min_length=1, max_length=80)
+    temporary_password: str = Field(min_length=12, max_length=128)
+    role: UserRole = UserRole.MEMBER
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def normalize_username(cls, value: object) -> object:
+        """Normalize a provisioned username."""
+        return value.strip().lower() if isinstance(value, str) else value
+
+    @field_validator("display_name", mode="before")
+    @classmethod
+    def clean_display_name(cls, value: object) -> object:
+        """Remove surrounding whitespace from display names."""
+        return value.strip() if isinstance(value, str) else value
+
+
+class AdminUserUpdate(BaseModel):
+    """Partial account changes available to an administrator."""
+
+    display_name: str | None = Field(default=None, min_length=1, max_length=80)
+    role: UserRole | None = None
+    status: UserStatus | None = None
+
+    @field_validator("display_name", mode="before")
+    @classmethod
+    def clean_display_name(cls, value: object) -> object:
+        """Remove surrounding whitespace from display names."""
+        return value.strip() if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def require_change(self) -> Self:
+        """Require at least one account field."""
+        if self.display_name is None and self.role is None and self.status is None:
+            raise ValueError("At least one field must be provided")
+        return self
+
+
+class AdminPasswordReset(BaseModel):
+    """Temporary password selected by an administrator."""
+
+    temporary_password: str = Field(min_length=12, max_length=128)

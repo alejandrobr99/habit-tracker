@@ -245,6 +245,7 @@ def test_budget_put_recovers_when_a_concurrent_insert_wins(
                 with session_factory() as competitor:
                     competitor.add(
                         Budget(
+                            user_id=1,
                             month=month,
                             category_id=expense_id,
                             limit_minor=competing_limit,
@@ -257,6 +258,7 @@ def test_budget_put_recovers_when_a_concurrent_insert_wins(
         monkeypatch.setattr(db, "flush", flush_with_competing_insert)
         budget, created = finance_service.put_budget(
             db,
+            1,
             month,
             expense_id,
             requested_limit,
@@ -265,4 +267,4 @@ def test_budget_put_recovers_when_a_concurrent_insert_wins(
 
         assert created is False
         assert budget.limit_minor == requested_limit
-        assert len(finance_service.list_budgets(db, month)) == 1
+        assert len(finance_service.list_budgets(db, 1, month)) == 1

@@ -79,7 +79,6 @@
       "PLANNER_ENVIRONMENT": "production",
       "PLANNER_FRONTEND_DIST": "/app/frontend/dist",
       "PLANNER_FRONTEND_ORIGINS": "[]",
-      "PLANNER_REQUIRE_AUTH": "true",
       "PYTHONDONTWRITEBYTECODE": "1",
       "PYTHONUNBUFFERED": "1"
     }

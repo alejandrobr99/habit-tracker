@@ -79,7 +79,7 @@ install-frontend:
 setup: doctor install migrate
 
 migrate:
-	cd $(BACKEND_DIR) && uv run alembic upgrade head
+	cd $(BACKEND_DIR) && uv run alembic upgrade head && uv run python -m app.bootstrap
 
 dev: check-ports
 	@$(MAKE) --no-print-directory -j2 dev-backend dev-frontend

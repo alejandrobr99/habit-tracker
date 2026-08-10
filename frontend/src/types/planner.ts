@@ -1,6 +1,19 @@
 export type HabitFrequency = "daily" | "weekly";
 export type HabitDirection = "build" | "avoid";
 export type ResourceStatus = "active" | "archived";
+export type UserRole = "admin" | "member";
+export type UserStatus = "active" | "disabled";
+
+export interface PlannerUser {
+  id: number;
+  username: string;
+  display_name: string;
+  role: UserRole;
+  status: UserStatus;
+  must_change_password: boolean;
+  created_at: string;
+  updated_at: string;
+}
 export type FinanceType = "income" | "expense";
 
 export interface Habit {

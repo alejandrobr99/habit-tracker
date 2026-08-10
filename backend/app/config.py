@@ -25,9 +25,9 @@ class Settings(BaseSettings):
         "127.0.0.1",
         "testserver",
     ]
-    require_auth: bool = False
-    access_username: str | None = None
-    access_password: SecretStr | None = None
+    bootstrap_admin_username: str | None = None
+    bootstrap_admin_display_name: str = "Administrador"
+    bootstrap_admin_password: SecretStr | None = None
     frontend_dist: Path | None = None
 
     model_config = SettingsConfigDict(
@@ -38,20 +38,18 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_deployment(self) -> Self:
         """Reject incomplete production and access-control configuration."""
-        if self.require_auth and (
-            not self.access_username
-            or self.access_password is None
-            or not self.access_password.get_secret_value()
-        ):
-            msg = "Access username and password are required when authentication is enabled."
+        has_bootstrap_username = bool(self.bootstrap_admin_username)
+        has_bootstrap_password = bool(
+            self.bootstrap_admin_password and self.bootstrap_admin_password.get_secret_value(),
+        )
+        if has_bootstrap_username != has_bootstrap_password:
+            msg = "Bootstrap username and password must be configured together."
             raise ValueError(msg)
-        if self.environment == "production":
-            if not self.require_auth:
-                msg = "Production requires authentication."
-                raise ValueError(msg)
-            if self.frontend_dist is None or not (self.frontend_dist / "index.html").is_file():
-                msg = "Production requires a frontend build containing index.html."
-                raise ValueError(msg)
+        if self.environment == "production" and (
+            self.frontend_dist is None or not (self.frontend_dist / "index.html").is_file()
+        ):
+            msg = "Production requires a frontend build containing index.html."
+            raise ValueError(msg)
         return self
 
 

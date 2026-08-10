@@ -10,6 +10,7 @@ import type {
   Habit,
   HabitInput,
   MonthlySummary,
+  PlannerUser,
   Progress,
   ResourceStatus,
   Reward,
@@ -50,6 +51,7 @@ async function request<T>(
 ): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
+    credentials: "include",
     signal: options?.signal ?? AbortSignal.timeout(API_TIMEOUT_MS),
     headers: {
       "Content-Type": "application/json",
@@ -65,7 +67,15 @@ async function request<T>(
     } catch {
       // The fallback message is used when the API does not return JSON.
     }
-    throw new ApiError(message, response.status);
+    const error = new ApiError(message, response.status);
+    if (
+      response.status === 401 &&
+      path !== "/auth/login" &&
+      typeof window !== "undefined"
+    ) {
+      window.dispatchEvent(new CustomEvent("planner:session-expired"));
+    }
+    throw error;
   }
 
   if (response.status === 204) {
@@ -75,6 +85,57 @@ async function request<T>(
 }
 
 export const plannerApi = {
+  login: (username: string, password: string): Promise<PlannerUser> =>
+    request<PlannerUser>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
+  logout: (): Promise<void> =>
+    request<void>("/auth/logout", {
+      method: "POST",
+    }),
+  getCurrentUser: (): Promise<PlannerUser> =>
+    request<PlannerUser>("/auth/me"),
+  changePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<PlannerUser> =>
+    request<PlannerUser>("/auth/password", {
+      method: "PUT",
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    }),
+  listUsers: (): Promise<PlannerUser[]> =>
+    request<PlannerUser[]>("/admin/users"),
+  createUser: (input: {
+    username: string;
+    display_name: string;
+    temporary_password: string;
+    role: "admin" | "member";
+  }): Promise<PlannerUser> =>
+    request<PlannerUser>("/admin/users", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  updateUser: (
+    id: number,
+    input: {
+      display_name?: string;
+      role?: "admin" | "member";
+      status?: "active" | "disabled";
+    },
+  ): Promise<PlannerUser> =>
+    request<PlannerUser>(`/admin/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
+  resetUserPassword: (id: number, temporaryPassword: string): Promise<void> =>
+    request<void>(`/admin/users/${id}/password-reset`, {
+      method: "POST",
+      body: JSON.stringify({ temporary_password: temporaryPassword }),
+    }),
   listHabits: (): Promise<Habit[]> => request<Habit[]>("/habits"),
   createHabit: (input: HabitInput): Promise<Habit> =>
     request<Habit>("/habits", {

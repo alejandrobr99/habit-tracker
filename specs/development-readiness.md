@@ -60,8 +60,6 @@ usan mocks en reglas puras; los límites HTTP y navegador sí pueden simularse.
 
 ## Diferido con intención
 
-- Autenticación y autorización propias del producto; el primer despliegue usa la credencial
-  compartida especificada en `004-deployment.md`.
 - PostgreSQL, Redis, tareas en segundo plano y observabilidad remota.
 - Sincronización offline.
 - SDK generado desde OpenAPI; se reconsiderará cuando el contrato crezca.
@@ -69,6 +67,6 @@ usan mocks en reglas puras; los límites HTTP y navegador sí pueden simularse.
 
 ## Primer despliegue
 
-El servicio único construido con Railpack, el volumen SQLite, el acceso compartido y la
-configuración Railway se definen en `004-deployment.md`. Esta entrega no modifica el modelo de
-usuario implícito ni introduce autenticación multiusuario.
+El servicio único construido con Railpack, el volumen SQLite y la configuración Railway se definen
+en `004-deployment.md`. Las cuentas administradas, sesiones y aislamiento se definen en
+`005-multi-user-auth.md`.

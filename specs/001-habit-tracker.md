@@ -101,7 +101,7 @@ Archivar conserva los registros.
 - Los hábitos `avoid` usan “Evitado” y “Pendiente”, nunca lenguaje de culpa ni un registro de
   recaídas.
 - La racha visible usa “días” para frecuencia `daily` y “semanas” para frecuencia `weekly`.
-- La API no expone check-ins fuera del usuario implícito ni incorpora telemetría de hábitos.
+- La API no expone hábitos ni check-ins fuera de la cuenta autenticada y no incorpora telemetría.
 - Hoy y Hábitos representan carga, vacío, error y contenido.
 - Crear, editar, archivar y marcar son operables con teclado.
 

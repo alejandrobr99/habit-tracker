@@ -28,38 +28,33 @@ def build_frontend(tmp_path: Path) -> Path:
 
 
 def production_settings(frontend_dist: Path) -> Settings:
-    """Return valid settings for a protected production instance."""
+    """Return valid settings for a production instance."""
     return Settings(
         environment="production",
         database_url="sqlite:////data/personal_planner.db",
         frontend_origins=[],
         allowed_hosts=["testserver"],
-        require_auth=True,
-        access_username="planner",
-        access_password="a-long-test-password",
         frontend_dist=frontend_dist,
     )
 
 
-def test_production_rejects_missing_authentication(tmp_path: Path):
+def test_production_accepts_bootstrap_secrets_or_a_configured_database(tmp_path: Path):
     frontend_dist = build_frontend(tmp_path)
 
-    with pytest.raises(
-        ValidationError,
-        match="Production requires authentication",
-    ):
-        Settings(
-            environment="production",
-            frontend_dist=frontend_dist,
-        )
+    settings = Settings(
+        environment="production",
+        frontend_dist=frontend_dist,
+    )
+
+    assert settings.bootstrap_admin_username is None
 
 
-def test_authentication_rejects_missing_credentials():
+def test_bootstrap_rejects_incomplete_credentials():
     with pytest.raises(
         ValidationError,
-        match="Access username and password are required",
+        match="Bootstrap username and password must be configured together",
     ):
-        Settings(require_auth=True)
+        Settings(bootstrap_admin_username="planner")
 
 
 def test_production_rejects_missing_frontend_build():
@@ -69,9 +64,6 @@ def test_production_rejects_missing_frontend_build():
     ):
         Settings(
             environment="production",
-            require_auth=True,
-            access_username="planner",
-            access_password="a-long-test-password",
         )
 
 
@@ -80,43 +72,23 @@ def test_health_is_public_and_application_is_protected(tmp_path: Path):
 
     with TestClient(application) as client:
         health = client.get("/health")
-        unauthorized = client.get("/")
-        invalid = client.get(
-            "/",
-            auth=("planner", "incorrect"),
-        )
+        frontend = client.get("/")
+        unauthorized = client.get("/api/v1/habits")
 
     assert health.status_code == status.HTTP_200_OK
+    assert frontend.status_code == status.HTTP_200_OK
     assert unauthorized.status_code == status.HTTP_401_UNAUTHORIZED
-    assert invalid.status_code == status.HTTP_401_UNAUTHORIZED
-    assert unauthorized.headers["www-authenticate"] == ('Basic realm="Pleno", charset="UTF-8"')
 
 
 def test_production_serves_spa_assets_and_keeps_api_404(tmp_path: Path):
     application = create_app(production_settings(build_frontend(tmp_path)))
-    credentials = ("planner", "a-long-test-password")
 
     with TestClient(application) as client:
-        home = client.get(
-            "/",
-            auth=credentials,
-        )
-        deep_route = client.get(
-            "/habitos",
-            auth=credentials,
-        )
-        asset = client.get(
-            "/assets/app.js",
-            auth=credentials,
-        )
-        missing_api = client.get(
-            "/api/v1/missing",
-            auth=credentials,
-        )
-        docs = client.get(
-            "/docs",
-            auth=credentials,
-        )
+        home = client.get("/")
+        deep_route = client.get("/habitos")
+        asset = client.get("/assets/app.js")
+        missing_api = client.get("/api/v1/missing")
+        docs = client.get("/docs")
 
     assert home.status_code == status.HTTP_200_OK
     assert "Pleno" in home.text

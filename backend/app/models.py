@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime
 from enum import StrEnum
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -92,6 +93,20 @@ class ResourceStatus(StrEnum):
     ARCHIVED = "archived"
 
 
+class UserRole(StrEnum):
+    """Roles supported by account administration."""
+
+    ADMIN = "admin"
+    MEMBER = "member"
+
+
+class UserStatus(StrEnum):
+    """Lifecycle states for a user account."""
+
+    ACTIVE = "active"
+    DISABLED = "disabled"
+
+
 class XpSourceType(StrEnum):
     """Events that may produce XP ledger entries."""
 
@@ -118,6 +133,65 @@ def enum_values(enum_class: type[StrEnum]) -> list[str]:
     return [str(member.value) for member in enum_class]
 
 
+class User(Base):
+    """A private account in the shared planner instance."""
+
+    __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('admin', 'member')",
+            name="ck_users_role",
+        ),
+        CheckConstraint(
+            "status IN ('active', 'disabled')",
+            name="ck_users_status",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String(80))
+    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[UserRole] = mapped_column(
+        SqlEnum(UserRole, native_enum=False, values_callable=enum_values),
+        default=UserRole.MEMBER,
+    )
+    status: Mapped[UserStatus] = mapped_column(
+        SqlEnum(UserStatus, native_enum=False, values_callable=enum_values),
+        default=UserStatus.ACTIVE,
+    )
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        UTCDateTime(),
+        default=utc_now,
+        onupdate=utc_now,
+    )
+    sessions: Mapped[list["UserSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+
+class UserSession(Base):
+    """A revocable browser session represented by a token hash."""
+
+    __tablename__ = "user_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime(), index=True)
+    user: Mapped[User] = relationship(back_populates="sessions")
+
+
 class Habit(Base):
     """A recurring activity tracked by the planner."""
 
@@ -142,6 +216,7 @@ class Habit(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     direction: Mapped[HabitKind] = mapped_column(
@@ -216,9 +291,10 @@ class FinanceSettings(Base):
     """Singleton base-currency settings."""
 
     __tablename__ = "finance_settings"
-    __table_args__ = (CheckConstraint("id = 1", name="ck_finance_settings_singleton"),)
+    __table_args__ = (UniqueConstraint("user_id", name="uq_finance_settings_user"),)
 
-    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     base_currency: Mapped[str] = mapped_column(String(3))
     minor_unit: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
@@ -239,6 +315,7 @@ class Category(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     name: Mapped[str] = mapped_column(String(60))
     type: Mapped[FinanceType] = mapped_column(
         SqlEnum(FinanceType, native_enum=False, values_callable=enum_values),
@@ -262,6 +339,7 @@ class FinanceTransaction(Base):
     __tablename__ = "finance_transactions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     type: Mapped[FinanceType] = mapped_column(
         SqlEnum(FinanceType, native_enum=False, values_callable=enum_values),
     )
@@ -282,9 +360,17 @@ class Budget(Base):
     """A monthly spending limit for one expense category."""
 
     __tablename__ = "finance_budgets"
-    __table_args__ = (UniqueConstraint("month", "category_id", name="uq_budgets_month_category"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "month",
+            "category_id",
+            name="uq_budgets_user_month_category",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     month: Mapped[str] = mapped_column(String(7), index=True)
     category_id: Mapped[int] = mapped_column(ForeignKey("finance_categories.id"))
     limit_minor: Mapped[int] = mapped_column(Integer)
@@ -300,9 +386,17 @@ class XpEntry(Base):
     """An immutable XP recognition or redemption entry."""
 
     __tablename__ = "xp_entries"
-    __table_args__ = (UniqueConstraint("source_type", "source_id", name="uq_xp_source"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "source_type",
+            "source_id",
+            name="uq_xp_user_source",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     amount: Mapped[int] = mapped_column(Integer)
     source_type: Mapped[XpSourceType] = mapped_column(
         SqlEnum(XpSourceType, native_enum=False, values_callable=enum_values),
@@ -316,11 +410,18 @@ class BadgeAward(Base):
     """An idempotent badge award."""
 
     __tablename__ = "badge_awards"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "badge_code",
+            name="uq_badge_awards_user_code",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     badge_code: Mapped[BadgeCode] = mapped_column(
         SqlEnum(BadgeCode, native_enum=False, values_callable=enum_values),
-        unique=True,
     )
     awarded_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
 
@@ -329,9 +430,17 @@ class WeeklyChallenge(Base):
     """A private weekly check-in challenge."""
 
     __tablename__ = "weekly_challenges"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "week_start",
+            name="uq_weekly_challenges_user_week",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    week_start: Mapped[date] = mapped_column(Date, unique=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    week_start: Mapped[date] = mapped_column(Date)
     habit_id: Mapped[int | None] = mapped_column(
         ForeignKey("habits.id"),
         nullable=True,
@@ -347,6 +456,7 @@ class Reward(Base):
     __tablename__ = "rewards"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     name: Mapped[str] = mapped_column(String(80))
     description: Mapped[str | None] = mapped_column(String(240), nullable=True)
     cost_xp: Mapped[int] = mapped_column(Integer)
@@ -366,11 +476,19 @@ class RewardRedemption(Base):
     """An immutable redemption of a personal reward."""
 
     __tablename__ = "reward_redemptions"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "idempotency_key",
+            name="uq_reward_redemptions_user_key",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     reward_id: Mapped[int] = mapped_column(ForeignKey("rewards.id"))
     cost_xp: Mapped[int] = mapped_column(Integer)
-    idempotency_key: Mapped[str] = mapped_column(String(36), unique=True)
+    idempotency_key: Mapped[str] = mapped_column(String(36))
     redeemed_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
 
 
@@ -394,7 +512,15 @@ class FinanceWeeklyReview(Base):
     """A weekly financial review confirmation without financial details."""
 
     __tablename__ = "finance_weekly_reviews"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "week_start",
+            name="uq_finance_weekly_reviews_user_week",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    week_start: Mapped[date] = mapped_column(Date, unique=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    week_start: Mapped[date] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)

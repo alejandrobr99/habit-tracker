@@ -22,7 +22,8 @@ Las especificaciones vigentes son:
 - `specs/001-habit-tracker.md`: primera funcionalidad completa.
 - `specs/002-finance-shell.md`: estructura inicial del módulo financiero.
 - `specs/003-gamification.md`: progreso, insignias, desafíos y recompensas privadas.
-- `specs/004-deployment.md`: Railpack, acceso compartido y despliegue personal.
+- `specs/004-deployment.md`: Railpack y despliegue privado.
+- `specs/005-multi-user-auth.md`: cuentas, sesiones y aislamiento por persona.
 - `specs/design-system.md`: lenguaje visual, componentes y accesibilidad.
 - `specs/development-readiness.md`: controles mínimos y decisiones diferidas.
 
@@ -134,15 +135,17 @@ Railway usa `railpack.json` para instalar Node 22, Python 3.11 y `uv`, construir
 FastAPI. Railpack es abierto y no requiere Docker Desktop, una licencia de Docker ni instalar una
 herramienta adicional.
 
-El despliegue requiere un servicio, un volumen y dos variables secretas:
+El despliegue requiere un servicio, un volumen y las variables temporales del primer administrador:
 
 1. Crea un proyecto en Railway y conecta este repositorio de GitHub. Railway detectará
    `railpack.json` y `railway.json`.
 2. Añade un volumen al servicio y usa exactamente `/data` como ruta de montaje. Mantén una sola
    réplica porque la instancia usa SQLite.
-3. En **Variables**, define `PLANNER_ACCESS_USERNAME` y `PLANNER_ACCESS_PASSWORD`. Usa una
-   contraseña larga, única y generada aleatoriamente; no la guardes en el repositorio.
-4. En **Networking**, selecciona **Generate Domain**. Railway publicará el servicio con HTTPS y
+3. Antes de desplegar esta migración sobre datos existentes, crea un snapshot del volumen.
+4. En **Variables**, define `PLANNER_BOOTSTRAP_ADMIN_USERNAME`,
+   `PLANNER_BOOTSTRAP_ADMIN_DISPLAY_NAME` y `PLANNER_BOOTSTRAP_ADMIN_PASSWORD`. Usa una
+   contraseña de al menos 12 caracteres, única y no versionada.
+5. En **Networking**, selecciona **Generate Domain**. Railway publicará el servicio con HTTPS y
    comprobará `/health` antes de dirigir tráfico.
 
 No necesitas configurar `PORT`, la URL de SQLite, CORS ni la URL de la API: `railpack.json` ya
@@ -151,18 +154,20 @@ migraciones antes de iniciar Uvicorn. Si luego añades un dominio propio, incorp
 `PLANNER_ALLOWED_HOSTS`, por ejemplo
 `["*.up.railway.app","healthcheck.railway.app","planner.example.com"]`.
 
-En el iPhone, abre la dirección `https://...up.railway.app` en Safari e introduce la credencial.
-Puedes usar **Compartir → Añadir a pantalla de inicio** para tener un acceso directo. Railway
-termina TLS; las credenciales nunca deben usarse sobre una URL HTTP pública.
+En el iPhone, abre la dirección `https://...up.railway.app` en Safari, entra con el administrador y
+cambia la contraseña temporal. Después elimina las tres variables `PLANNER_BOOTSTRAP_ADMIN_*` de
+Railway; los siguientes despliegues conservan la cuenta en SQLite. Desde **Administración** puedes
+crear entre 5 y 10 cuentas, asignar una contraseña temporal, desactivar accesos y restablecer
+claves. Cada persona debe cambiar su clave al entrar y solo ve sus propios datos.
 
-La contraseña compartida protege esta primera instancia personal, pero no crea cuentas ni separa
-datos por usuario. Habilita snapshots del volumen cuando estén disponibles en tu plan de Railway y
-rota la contraseña desde **Variables** si crees que fue expuesta.
+Puedes usar **Compartir → Añadir a pantalla de inicio** para tener un acceso directo. Mantén una
+sola réplica, habilita snapshots del volumen y restaura el snapshot si la migración inicial falla.
 
 ## Prueba local en cinco minutos
 
 Inicia el backend y el frontend con los comandos anteriores. Después abre
-`http://127.0.0.1:5173` y recorre este flujo:
+`http://127.0.0.1:5173`, entra con `admin` / `pleno-local-2026`, cambia esa clave local y recorre
+este flujo:
 
 1. En **Hábitos**, crea un hábito de tipo “Construir” o “Evitar” y registra el cumplimiento de hoy.
 2. En **Progreso**, comprueba el XP, crea un desafío semanal y configura una recompensa personal.
