@@ -27,9 +27,16 @@
         {
           "cmd": "uv --directory /app/backend sync --frozen --no-dev",
           "customName": "Instalar backend"
+        },
+        {
+          "cmd": "sh -c 'test -x /app/backend/venv/bin/alembic && test -x /app/backend/venv/bin/uvicorn'",
+          "customName": "Verificar backend"
         }
       ],
-      "secrets": []
+      "secrets": [],
+      "variables": {
+        "UV_PROJECT_ENVIRONMENT": "/app/backend/venv"
+      }
     },
     "build": {
       "inputs": [
@@ -56,7 +63,7 @@
       }
     ],
     "paths": [
-      "/app/backend/.venv/bin"
+      "/app/backend/venv/bin"
     ],
     "startCommand": "sh /app/start.sh",
     "variables": {
