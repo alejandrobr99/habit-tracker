@@ -13,7 +13,10 @@
           "step": "packages:mise"
         },
         {
-          "local": true
+          "local": true,
+          "include": [
+            "."
+          ]
         }
       ],
       "commands": [
