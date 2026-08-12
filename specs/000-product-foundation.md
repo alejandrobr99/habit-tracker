@@ -150,6 +150,9 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
   propietario, sin registro público.
 - **D-000-12:** tratar todo contenido subido y toda salida de un modelo de lenguaje como entrada no
   confiable que requiere validación determinista y confirmación humana antes de persistirse.
+- **D-000-13:** leer primero la especificación directamente afectada y consultar constitución,
+  diseño y referencias auxiliares solo cuando la decisión lo requiera; los skills conservan los
+  detalles de cada dominio para reducir contexto innecesario.
 
 ## Preguntas abiertas
 

@@ -7,12 +7,9 @@ description: Diseña e implementa movimiento, microinteracciones, celebraciones 
 
 ## Fuente de verdad
 
-Lee antes de diseñar:
-
-1. `specs/design-system.md`.
-2. `specs/003-gamification.md` para el evento que origina reconocimiento.
-3. `specs/001-habit-tracker.md` para check-ins y rachas.
-4. [RESEARCH.md](RESEARCH.md) cuando se justifique una mecánica, color o intensidad.
+Lee primero `specs/design-system.md`. Consulta `specs/003-gamification.md` para reconocimiento,
+`specs/001-habit-tracker.md` para check-ins o rachas y [RESEARCH.md](RESEARCH.md) solo cuando se
+justifique una mecánica, color o intensidad.
 
 Usa `planner-design` para composición estática y `planner-gamification` para reglas de dominio. Esta
 skill define cómo se expresa visualmente un cambio real.

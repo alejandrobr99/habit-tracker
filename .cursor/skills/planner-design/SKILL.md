@@ -7,12 +7,9 @@ description: Diseña, implementa y revisa interfaces del planificador conservand
 
 ## Fuente de verdad
 
-Lee antes de diseñar:
-
-1. `specs/design-system.md`.
-2. `specs/000-product-foundation.md`.
-3. La especificación numerada de la función afectada.
-4. `planner-visual-delight/SKILL.md` al diseñar movimiento, celebración u ornamento.
+Lee primero `specs/design-system.md` y la especificación numerada de la función afectada. Consulta
+`specs/000-product-foundation.md` solo si el cambio afecta navegación, estados globales o alcance.
+Activa `planner-visual-delight/SKILL.md` únicamente al diseñar movimiento, celebración u ornamento.
 
 Si falta un estado o comportamiento, actualiza la especificación antes de inventarlo en código.
 

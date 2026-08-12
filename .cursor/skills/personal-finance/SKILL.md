@@ -7,13 +7,10 @@ description: Diseña, implementa y revisa funciones de finanzas personales priva
 
 ## Fuente de verdad
 
-Lee antes de trabajar:
-
-1. `specs/004-finance-mvp.md`.
-2. `specs/000-product-foundation.md`.
-3. `specs/design-system.md`.
-4. `specs/003-gamification.md` si el cambio produce reconocimiento.
-5. [REFERENCE.md](REFERENCE.md) para representación monetaria, privacidad e integraciones futuras.
+Lee primero `specs/004-finance-mvp.md`. Consulta `specs/000-product-foundation.md` solo si el
+cambio afecta convenciones comunes o alcance. Consulta `specs/design-system.md` si cambia la
+interfaz, `specs/003-gamification.md` si produce reconocimiento y [REFERENCE.md](REFERENCE.md)
+si afecta representación monetaria, privacidad o integraciones futuras.
 
 `specs/002-finance-shell.md` es contexto histórico, no el contrato del MVP. Si falta un
 comportamiento, actualiza la especificación antes de inventarlo en código.

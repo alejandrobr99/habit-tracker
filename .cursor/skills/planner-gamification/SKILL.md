@@ -7,13 +7,10 @@ description: Diseña, implementa y revisa gamificación privada y no moralizante
 
 ## Fuente de verdad
 
-Lee antes de trabajar:
-
-1. `specs/003-gamification.md`.
-2. `specs/001-habit-tracker.md` o `specs/004-finance-mvp.md`, según el dominio.
-3. `specs/design-system.md`.
-4. [RESEARCH.md](RESEARCH.md) cuando se evalúe una mecánica, tono o decisión de motivación.
-5. `planner-visual-delight/SKILL.md` para movimiento, celebración y ornamentación.
+Lee primero `specs/003-gamification.md` y la especificación del dominio afectado:
+`specs/001-habit-tracker.md` o `specs/004-finance-mvp.md`. Consulta `specs/design-system.md`
+si cambia la interfaz, [RESEARCH.md](RESEARCH.md) si se evalúa una mecánica o tono y activa
+`planner-visual-delight/SKILL.md` solo para movimiento, celebración u ornamentación.
 
 Si falta un comportamiento, actualiza primero la especificación. No inventes eventos, cantidades de
 XP, insignias, estados ni señales financieras en código.

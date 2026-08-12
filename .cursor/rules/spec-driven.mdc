@@ -5,8 +5,8 @@ alwaysApply: true
 
 # Desarrollo guiado por especificaciones
 
-- Lee `specs/constitution.md`, `specs/000-product-foundation.md`, la especificación de la función y
-  `specs/design-system.md` antes de proponer o cambiar producto.
+- Lee primero la especificación directamente afectada. Consulta `specs/constitution.md` o
+  `specs/design-system.md` solo si la decisión técnica o visual lo requiere.
 - Si el comportamiento solicitado no está especificado, actualiza primero la especificación.
 - Toda especificación funcional debe cubrir objetivos, no objetivos, modelo, API, estados de UI,
   criterios de aceptación y decisiones.
@@ -17,15 +17,12 @@ alwaysApply: true
 - Si código y especificación discrepan, señala el conflicto y confirma la dirección antes de
   ampliar alcance.
 - Mantén hábitos y finanzas como dominios separados bajo convenciones comunes.
-- Aplica los tokens, voz, accesibilidad y restricciones de `specs/design-system.md`.
-- Usa `.cursor/skills/planner-design/SKILL.md` al crear o revisar interfaces.
-- Usa `.cursor/skills/planner-visual-delight/SKILL.md` al trabajar con movimiento, celebraciones,
- rachas, recompensas u ornamentación.
-- Usa `.cursor/skills/planner-security/SKILL.md` al trabajar con autenticación, sesiones, límites de
- uso, cabeceras, cargas de archivos, OCR, modelos de lenguaje, secretos o despliegue.
+- Activa solo el skill que corresponda al tipo de cambio: diseño, deleite visual, gamificación,
+  finanzas o seguridad.
 - Conserva los documentos en español y los identificadores técnicos en inglés.
 - Evita trabajo adyacente: implementa solo el incremento aceptado.
 - Elige la implementación correcta más simple; no anticipes capas, parámetros ni infraestructura.
 - Prefiere código local explícito a una abstracción difícil mientras la repetición no sea estable.
 - Parametriza solo valores que cambian por entorno y documenta su valor local seguro.
 - Optimiza después de medir y exige pruebas proporcionales al riesgo del cambio.
+- Mantén pequeñas las salidas de herramientas; la regla global de salidas concisas define cómo.

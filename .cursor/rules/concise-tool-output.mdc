@@ -1,0 +1,26 @@
+---
+description: Mantiene pequeñas las salidas de comandos y conserva contexto para el desarrollo
+alwaysApply: true
+---
+
+# Salidas de herramientas
+
+- No ejecutes comandos que produzcan salidas enormes si existe una variante resumida.
+- Usa `pytest -q`, `npm test -- --run`, `ruff check . --output-format concise` y `git diff --stat`.
+- Para logs o resultados largos, filtra primero con `rg` por errores, fallos, resumen y métricas.
+- No leas un archivo de terminal completo salvo que necesites diagnosticar una línea concreta.
+- No imprimas archivos completos ni diffs completos; lee solo los rangos relevantes.
+- En comandos de validación, muestra el resultado resumido y conserva el código de salida.
+- Si una salida extensa es necesaria, ejecútala en segundo plano y devuelve solo un resumen verificable.
+- Al delegar a un subagente, exige rutas, líneas, impacto y recomendación; no solicites código o
+  archivos completos salvo que sean imprescindibles.
+
+Ejemplos:
+
+```sh
+pytest -q
+npm test -- --run
+ruff check . --output-format concise
+git diff --stat
+git diff -- path/to/file.py
+```

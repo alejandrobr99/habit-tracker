@@ -70,5 +70,8 @@ jobs:
         run: npm audit --audit-level=high --package-lock-only
       - name: Buscar secretos en el historial del repositorio
         run: |
+          # Lob interpreta nombres de pruebas con prefijo test_ como credenciales.
+          # Se excluye solo ese detector; los demás permanecen activos y fallan ante
+          # resultados verificados.
           docker run --rm -v "$PWD:/repo" trufflesecurity/trufflehog:latest \
-            git file:///repo --results=verified --fail
+            git file:///repo --exclude-detectors=Lob --results=verified --fail

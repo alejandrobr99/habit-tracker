@@ -7,13 +7,10 @@ description: Diseña, implementa y revisa controles de seguridad del planificado
 
 ## Fuente de verdad
 
-Lee antes de trabajar:
-
-1. `specs/006-security-hardening.md` para el contrato de controles vigente.
-2. `specs/005-multi-user-auth.md` para identidad, sesiones y aislamiento por propietario.
-3. `specs/constitution.md` para robustez proporcional y parametrización con propósito.
-4. `specs/000-product-foundation.md` para privacidad local y minimización de datos.
-5. [REFERENCE.md](REFERENCE.md) para cargas de archivos, OCR y modelos de lenguaje.
+Lee primero `specs/006-security-hardening.md`. Consulta `specs/005-multi-user-auth.md` solo si el
+cambio afecta identidad, sesiones o aislamiento. Consulta `specs/constitution.md` únicamente si
+la decisión técnica requiere resolver un principio. Lee [REFERENCE.md](REFERENCE.md) solo para
+cargas de archivos, OCR o modelos de lenguaje.
 
 Si un control necesario no está especificado, actualiza la especificación antes de escribirlo en
 código. Un control sin criterio de aceptación observable no está terminado.

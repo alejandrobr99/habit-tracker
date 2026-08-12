@@ -264,6 +264,9 @@ nada todavía.
 - Los eventos definidos se emiten con su nombre estable y sin datos sensibles.
 - La integración continua falla ante una dependencia vulnerable de severidad alta o un secreto.
 - La aplicación sigue funcionando con SQLite, una réplica y el despliegue Railpack existente.
+- El escaneo de secretos ignora únicamente el detector `Lob`, cuya coincidencia actual con nombres
+  de pruebas `test_` fue verificada como falso positivo; los demás detectores siguen en modo
+  `verified` y bloquean la integración.
 
 ## Decisiones registradas
 
@@ -287,6 +290,9 @@ nada todavía.
   requiere validación determinista y confirmación humana.
 - **SEC-010:** mantener el escaneo de dependencias y secretos en integración continua en lugar de
   auditorías manuales periódicas.
+- **SEC-011:** excluir únicamente el detector `Lob` del escaneo de secretos porque su implementación
+  actual confunde nombres de pruebas con claves `test_`; revisar la excepción si cambia el patrón
+  del detector o aparecen credenciales Lob reales.
 
 ## Preguntas abiertas
 
