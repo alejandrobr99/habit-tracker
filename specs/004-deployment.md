@@ -123,6 +123,8 @@ No se añade una pantalla propia de inicio de sesión en este incremento.
 - Un dato creado permanece después de desplegar de nuevo con el mismo volumen.
 - El build local, formato, lint y pruebas existentes continúan pasando.
 - El README documenta snapshot, bootstrap del primer administrador, volumen y dominio.
+- La capa final de Railpack incluye explícitamente el directorio de aplicación `/app`, incluido
+  `start.sh`, `backend`, `frontend/dist` y `backend/venv`.
 
 ## Decisiones registradas
 
@@ -135,3 +137,6 @@ No se añade una pantalla propia de inicio de sesión en este incremento.
 - **DEP-005:** servir el build de React desde FastAPI para evitar un proxy y un segundo servicio.
 - **DEP-006:** usar Railpack para construir y ejecutar el servicio sin mantener Docker ni requerir
   herramientas de contenedores locales.
+- **DEP-007:** incluir explícitamente `"."` desde el paso `build` en la capa final de deploy, porque
+  Railpack no garantiza que el directorio de trabajo y sus archivos se transfieran sin un filtro de
+  inclusión explícito.

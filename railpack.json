@@ -66,7 +66,10 @@
         ]
       },
       {
-        "step": "build"
+        "step": "build",
+        "include": [
+          "."
+        ]
       }
     ],
     "paths": [
