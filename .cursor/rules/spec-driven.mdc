@@ -20,7 +20,9 @@ alwaysApply: true
 - Aplica los tokens, voz, accesibilidad y restricciones de `specs/design-system.md`.
 - Usa `.cursor/skills/planner-design/SKILL.md` al crear o revisar interfaces.
 - Usa `.cursor/skills/planner-visual-delight/SKILL.md` al trabajar con movimiento, celebraciones,
-  rachas, recompensas u ornamentación.
+ rachas, recompensas u ornamentación.
+- Usa `.cursor/skills/planner-security/SKILL.md` al trabajar con autenticación, sesiones, límites de
+ uso, cabeceras, cargas de archivos, OCR, modelos de lenguaje, secretos o despliegue.
 - Conserva los documentos en español y los identificadores técnicos en inglés.
 - Evita trabajo adyacente: implementa solo el incremento aceptado.
 - Elige la implementación correcta más simple; no anticipes capas, parámetros ni infraestructura.

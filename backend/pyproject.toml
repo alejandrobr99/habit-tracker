@@ -15,6 +15,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "httpx>=0.28",
+    "pip-audit>=2.10.1",
     "pytest>=8.4",
     "pytest-cov>=7.1.0",
     "ruff>=0.12",
@@ -54,6 +55,7 @@ select = [
     "T20",
     "PT",
     "RET",
+    "S",
     "SIM",
     "ARG",
     "ERA",
@@ -74,7 +76,9 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "D104"]
-"test_*.py" = ["D100", "D101", "D102", "D103", "ANN"]
+"test_*.py" = ["D100", "D101", "D102", "D103", "ANN", "S101", "S105", "S106"]
+"conftest.py" = ["S105", "S106"]
+"alembic/**" = ["S608"]
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true

@@ -1,5 +1,6 @@
 """Shared API test fixtures."""
 
+import os
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -9,15 +10,37 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.auth import hash_password, hash_session_token
-from app.database import Base, get_db
-from app.main import app
-from app.models import User, UserRole, UserSession, UserStatus
+# A developer's exported variables or local .env would otherwise decide what these
+# assertions actually verify, and would hide the defaults the specification fixes.
+# Both sources are neutralized before the application reads its settings.
+for _name in [name for name in os.environ if name.startswith("PLANNER_")]:
+    del os.environ[_name]
+
+from app.config import Settings  # noqa: E402
+
+Settings.model_config["env_file"] = None
+
+from app.auth import hash_password, hash_session_token  # noqa: E402
+from app.database import Base, get_db  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models import User, UserRole, UserSession, UserStatus  # noqa: E402
+from app.security import (  # noqa: E402
+    login_account_limiter,
+    login_origin_limiter,
+    password_change_limiter,
+)
 
 TEST_USERNAME = "admin"
 TEST_PASSWORD = "contraseña-segura"
 TEST_SESSION_TOKEN = "test-session-token"
 TEST_PASSWORD_HASH = hash_password(TEST_PASSWORD)
+
+
+@pytest.fixture(autouse=True)
+def reset_attempt_budgets() -> None:
+    """Isolate the in-process attempt ledgers between tests."""
+    for limiter in (login_account_limiter, login_origin_limiter, password_change_limiter):
+        limiter.reset()
 
 
 @pytest.fixture

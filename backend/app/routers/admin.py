@@ -7,7 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.auth import CurrentAdmin, hash_password, revoke_user_sessions
+from app.auth import (
+    CurrentAdmin,
+    hash_password,
+    require_acceptable_password,
+    revoke_user_sessions,
+)
 from app.database import get_db
 from app.models import User, UserRole, UserStatus
 from app.schemas import (
@@ -16,6 +21,7 @@ from app.schemas import (
     AdminUserUpdate,
     UserRead,
 )
+from app.security import log_security_event
 
 router = APIRouter(prefix="/admin/users", tags=["admin"])
 DatabaseSession = Annotated[Session, Depends(get_db)]
@@ -34,10 +40,11 @@ def list_users(
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def create_user(
     payload: AdminUserCreate,
-    _admin: CurrentAdmin,
+    admin: CurrentAdmin,
     db: DatabaseSession,
 ) -> UserRead:
     """Provision a user with a temporary password."""
+    require_acceptable_password(payload.temporary_password, payload.username)
     if db.scalar(select(User.id).where(User.username == payload.username)) is not None:
         raise _username_conflict()
     user = User(
@@ -51,6 +58,12 @@ def create_user(
     db.add(user)
     db.commit()
     db.refresh(user)
+    log_security_event(
+        "admin_user_created",
+        actor_id=admin.id,
+        user_id=user.id,
+        role=user.role.value,
+    )
     return UserRead.model_validate(user)
 
 
@@ -90,6 +103,13 @@ def update_user(
         revoke_user_sessions(db, user.id)
     db.commit()
     db.refresh(user)
+    log_security_event(
+        "admin_user_updated",
+        actor_id=admin.id,
+        user_id=user.id,
+        role=user.role.value,
+        account_status=user.status.value,
+    )
     return UserRead.model_validate(user)
 
 
@@ -97,18 +117,20 @@ def update_user(
 def reset_user_password(
     user_id: int,
     payload: AdminPasswordReset,
-    _admin: CurrentAdmin,
+    admin: CurrentAdmin,
     db: DatabaseSession,
 ) -> Response:
     """Set a temporary password and revoke every existing session."""
     user = db.get(User, user_id)
     if user is None:
         raise _user_not_found()
+    require_acceptable_password(payload.temporary_password, user.username)
     user.password_hash = hash_password(payload.temporary_password)
     user.must_change_password = True
     user.updated_at = datetime.now(UTC)
     revoke_user_sessions(db, user.id)
     db.commit()
+    log_security_event("admin_password_reset", actor_id=admin.id, user_id=user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

@@ -48,6 +48,9 @@ La identidad, las sesiones y el aislamiento entre las cuentas administradas de l
 definen en `specs/005-multi-user-auth.md`. Cada persona conserva hábitos, finanzas y gamificación
 privados aunque comparta el despliegue.
 
+Los controles de seguridad del perímetro y el contrato que deberá cumplir cualquier función que
+reciba archivos o use un modelo de lenguaje se definen en `specs/006-security-hardening.md`.
+
 La toma de decisiones técnicas se rige por `specs/constitution.md`. En particular, solo se
 parametrizan valores que varían por entorno o instalación; las reglas de producto permanecen como
 código versionado.
@@ -145,6 +148,8 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
   `created_at`.
 - **D-000-11:** evolucionar del usuario implícito a cuentas administradas con datos privados por
   propietario, sin registro público.
+- **D-000-12:** tratar todo contenido subido y toda salida de un modelo de lenguaje como entrada no
+  confiable que requiere validación determinista y confirmación humana antes de persistirse.
 
 ## Preguntas abiertas
 

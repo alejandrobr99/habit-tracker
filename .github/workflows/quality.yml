@@ -42,3 +42,33 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: Verificar que el build no emite código en línea
+        working-directory: .
+        run: sh scripts/verify-frontend-build.sh frontend/dist/index.html
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Auditar dependencias del backend
+        working-directory: backend
+        run: |
+          uv sync --frozen --dev
+          uv run pip-audit --skip-editable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Auditar dependencias del frontend
+        working-directory: frontend
+        run: npm audit --audit-level=high --package-lock-only
+      - name: Buscar secretos en el historial del repositorio
+        run: |
+          docker run --rm -v "$PWD:/repo" trufflesecurity/trufflehog:latest \
+            git file:///repo --results=verified --fail

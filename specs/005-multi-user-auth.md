@@ -97,8 +97,8 @@ ambos tengan el mismo propietario.
   - Cuerpo: `current_password`, `new_password`.
   - Revoca todas las sesiones, crea una nueva y limpia `must_change_password`.
 
-Cinco fallos para la misma combinación de username normalizado e IP durante 15 minutos bloquean
-temporalmente nuevos intentos. El límite es local al único proceso y se reinicia al desplegar.
+Los presupuestos de intento, su clave y su cota los define `specs/006-security-hardening.md`. El
+límite es local al único proceso y se reinicia al desplegar.
 
 ## API administrativa
 
@@ -124,6 +124,9 @@ sistema sin administrador activo. Las cuentas no se eliminan.
 - Ningún endpoint de dominio acepta `user_id` desde el cliente.
 
 ## CSRF y seguridad
+
+Los controles de perímetro, cabeceras del navegador, límites de uso, política de contraseñas y
+registro de eventos se especifican en `specs/006-security-hardening.md`.
 
 - Las mutaciones autenticadas validan que `Origin` sea el mismo origen o un origen local permitido.
 - Las contraseñas usan Argon2id mediante `pwdlib[argon2]` y un hash ficticio para usuarios ausentes.

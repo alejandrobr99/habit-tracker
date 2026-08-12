@@ -14,7 +14,9 @@ config.set_main_option(
     get_settings().database_url,
 )
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # Keep loggers this file does not declare, so running migrations in-process
+    # cannot silence application logging such as security events.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = models.Base.metadata
 

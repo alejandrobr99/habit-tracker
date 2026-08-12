@@ -24,6 +24,7 @@ Las especificaciones vigentes son:
 - `specs/003-gamification.md`: progreso, insignias, desafíos y recompensas privadas.
 - `specs/004-deployment.md`: Railpack y despliegue privado.
 - `specs/005-multi-user-auth.md`: cuentas, sesiones y aislamiento por persona.
+- `specs/006-security-hardening.md`: controles de seguridad y contrato para OCR y modelos.
 - `specs/design-system.md`: lenguaje visual, componentes y accesibilidad.
 - `specs/development-readiness.md`: controles mínimos y decisiones diferidas.
 
@@ -153,6 +154,11 @@ declara los valores no secretos correctos para Railway. El comando de arranque a
 migraciones antes de iniciar Uvicorn. Si luego añades un dominio propio, incorpora su host a
 `PLANNER_ALLOWED_HOSTS`, por ejemplo
 `["*.up.railway.app","healthcheck.railway.app","habit-tracker.co","www.habit-tracker.co"]`.
+
+`PLANNER_TRUSTED_PROXY_HOPS` vale `1` porque solo el borde de Railway añade `X-Forwarded-For`. No lo
+subas sin agregar un proxy real: un valor mayor que la cantidad de saltos permitiría que quien llama
+elija su propia dirección y reinicie los límites de intentos. Con `make audit` revisas dependencias
+con vulnerabilidades conocidas antes de desplegar.
 
 En el iPhone, abre la dirección `https://...up.railway.app` en Safari, entra con el administrador y
 cambia la contraseña temporal. Después elimina las tres variables `PLANNER_BOOTSTRAP_ADMIN_*` de

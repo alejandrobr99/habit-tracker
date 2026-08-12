@@ -79,6 +79,8 @@
       "PLANNER_ENVIRONMENT": "production",
       "PLANNER_FRONTEND_DIST": "/app/frontend/dist",
       "PLANNER_FRONTEND_ORIGINS": "[]",
+      "PLANNER_MAX_REQUEST_BYTES": "65536",
+      "PLANNER_TRUSTED_PROXY_HOPS": "1",
       "PYTHONDONTWRITEBYTECODE": "1",
       "PYTHONUNBUFFERED": "1"
     }

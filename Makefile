@@ -9,7 +9,8 @@ FRONTEND_PORT ?= 5173
 
 .PHONY: help doctor check-ports stop install install-backend install-frontend setup migrate dev dev-backend \
 	dev-frontend test test-backend test-frontend lint lint-backend lint-frontend format \
-	format-check build check refresh preview preview-backend preview-frontend
+	format-check build check refresh preview preview-backend preview-frontend \
+	audit audit-backend audit-frontend verify-build
 
 help:
 	@printf '%s\n' \
@@ -22,7 +23,8 @@ help:
 		'  make lint          Ejecuta los linters' \
 		'  make format        Formatea el backend con Ruff' \
 		'  make build         Construye el frontend para producción' \
-		'  make check         Ejecuta formato, lint, pruebas y build' \
+		'  make check         Ejecuta formato, lint, pruebas, build y verificación' \
+		'  make audit         Busca dependencias con vulnerabilidades conocidas' \
 		'  make refresh       Actualiza dependencias, migra y verifica todo' \
 		'  make preview       Sirve el build y la API sin modo reload' \
 		'  make doctor        Comprueba las herramientas requeridas'
@@ -117,7 +119,19 @@ format-check:
 build:
 	cd $(FRONTEND_DIR) && npm run build
 
-check: format-check lint test build
+verify-build:
+	sh scripts/verify-frontend-build.sh $(FRONTEND_DIR)/dist/index.html
+
+audit:
+	@$(MAKE) --no-print-directory audit-backend audit-frontend
+
+audit-backend:
+	cd $(BACKEND_DIR) && uv run pip-audit --skip-editable
+
+audit-frontend:
+	cd $(FRONTEND_DIR) && npm audit --audit-level=high --package-lock-only
+
+check: format-check lint test build verify-build
 
 refresh: install migrate check
 

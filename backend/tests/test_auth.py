@@ -12,7 +12,6 @@ from app.auth import (
     hash_password,
     hash_session_token,
     initialize_bootstrap_admin,
-    login_attempt_limiter,
     verify_password,
 )
 from app.config import Settings
@@ -63,21 +62,16 @@ def test_login_rate_limit_is_local_and_bounded(
     unauthenticated_client: TestClient,
 ) -> None:
     """Block a sixth recent failure for one username and address."""
-    username = "limited-user"
-    client_ip = "testclient"
-    login_attempt_limiter.clear(username, client_ip)
-
     responses = [
         unauthenticated_client.post(
             "/api/v1/auth/login",
-            json={"username": username, "password": "incorrecta"},
+            json={"username": "limited-user", "password": "incorrecta"},
         )
         for _ in range(6)
     ]
 
     assert all(response.status_code == status.HTTP_401_UNAUTHORIZED for response in responses[:5])
     assert responses[5].status_code == status.HTTP_429_TOO_MANY_REQUESTS
-    login_attempt_limiter.clear(username, client_ip)
 
 
 def test_mandatory_password_change_rotates_sessions_and_unlocks_domain(

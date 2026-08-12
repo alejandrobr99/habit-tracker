@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import re
 import secrets
-from collections import defaultdict, deque
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
@@ -18,11 +17,13 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.database import get_db
 from app.models import User, UserRole, UserSession, UserStatus
+from app.security import log_security_event, password_policy_error, resolve_client_ip
 
 SESSION_COOKIE_NAME = "pleno_session"
 SESSION_LIFETIME = timedelta(days=14)
-LOGIN_WINDOW = timedelta(minutes=15)
-MAX_LOGIN_FAILURES = 5
+# Sentinel written by the multi-user migration; it is not a valid hash, so it can
+# never verify against any password.
+UNINITIALIZED_PASSWORD_HASH = "!"  # noqa: S105 - sentinel, not a credential
 MIN_PASSWORD_LENGTH = 12
 MAX_PASSWORD_LENGTH = 128
 MAX_DISPLAY_NAME_LENGTH = 80
@@ -41,43 +42,6 @@ class CreatedSession:
     expires_at: datetime
 
 
-class LoginAttemptLimiter:
-    """Small in-process limiter suitable for the single deployed replica."""
-
-    def __init__(self) -> None:
-        """Create an empty failure ledger."""
-        self._failures: dict[tuple[str, str], deque[datetime]] = defaultdict(deque)
-
-    def is_blocked(self, username: str, client_ip: str, now: datetime) -> bool:
-        """Return whether recent failures reached the configured limit."""
-        failures = self._recent_failures(username, client_ip, now)
-        return len(failures) >= MAX_LOGIN_FAILURES
-
-    def record_failure(self, username: str, client_ip: str, now: datetime) -> None:
-        """Record one failed login."""
-        failures = self._recent_failures(username, client_ip, now)
-        failures.append(now)
-
-    def clear(self, username: str, client_ip: str) -> None:
-        """Clear failures after a successful login."""
-        self._failures.pop((username, client_ip), None)
-
-    def _recent_failures(
-        self,
-        username: str,
-        client_ip: str,
-        now: datetime,
-    ) -> deque[datetime]:
-        failures = self._failures[(username, client_ip)]
-        cutoff = now - LOGIN_WINDOW
-        while failures and failures[0] <= cutoff:
-            failures.popleft()
-        return failures
-
-
-login_attempt_limiter = LoginAttemptLimiter()
-
-
 def hash_password(password: str) -> str:
     """Hash a password with the configured Argon2id profile."""
     return PASSWORD_HASH.hash(password)
@@ -85,11 +49,23 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, password_hash: str) -> bool:
     """Verify a password without exposing malformed bootstrap hashes."""
-    candidate_hash = password_hash if password_hash != "!" else DUMMY_PASSWORD_HASH
+    candidate_hash = (
+        DUMMY_PASSWORD_HASH if password_hash == UNINITIALIZED_PASSWORD_HASH else password_hash
+    )
     try:
         return PASSWORD_HASH.verify(password, candidate_hash)
     except Exception:  # pragma: no cover - defensive compatibility with persisted hashes
         return False
+
+
+def require_acceptable_password(password: str, username: str) -> None:
+    """Reject a password that is trivial or derived from the username."""
+    reason = password_policy_error(password, username)
+    if reason is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=reason,
+        )
 
 
 def initialize_bootstrap_admin(db: Session, settings: Settings) -> None:
@@ -98,7 +74,7 @@ def initialize_bootstrap_admin(db: Session, settings: Settings) -> None:
     if user is None:
         msg = "The initial administrator row is missing. Run database migrations."
         raise RuntimeError(msg)
-    if user.password_hash != "!":
+    if user.password_hash != UNINITIALIZED_PASSWORD_HASH:
         return
     username = (
         (
@@ -124,6 +100,10 @@ def initialize_bootstrap_admin(db: Session, settings: Settings) -> None:
         raise RuntimeError(msg)
     if not display_name or len(display_name) > MAX_DISPLAY_NAME_LENGTH:
         msg = "PLANNER_BOOTSTRAP_ADMIN_DISPLAY_NAME must contain 1 to 80 characters."
+        raise RuntimeError(msg)
+    policy_error = password_policy_error(password, username)
+    if policy_error is not None:
+        msg = f"PLANNER_BOOTSTRAP_ADMIN_PASSWORD is not acceptable: {policy_error}"
         raise RuntimeError(msg)
     conflict = db.scalar(select(User.id).where(User.username == username, User.id != user.id))
     if conflict is not None:
@@ -225,7 +205,11 @@ def clear_session_cookie(response: Response, settings: Settings) -> None:
     )
 
 
-def get_current_user(request: Request, db: DatabaseSession) -> User:
+def get_current_user(
+    request: Request,
+    db: DatabaseSession,
+    settings: AppSettings,
+) -> User:
     """Resolve the active account represented by the session cookie."""
     token = request.cookies.get(SESSION_COOKIE_NAME)
     if not token:
@@ -237,16 +221,16 @@ def get_current_user(request: Request, db: DatabaseSession) -> User:
         .where(UserSession.token_hash == hash_session_token(token)),
     ).one_or_none()
     if row is None:
-        raise _unauthorized()
+        raise _session_rejected(request, settings, "unknown_token")
     session, user = row
     if session.expires_at <= now:
         db.delete(session)
         db.commit()
-        raise _unauthorized()
+        raise _session_rejected(request, settings, "expired")
     if user.status != UserStatus.ACTIVE:
         revoke_user_sessions(db, user.id)
         db.commit()
-        raise _unauthorized()
+        raise _session_rejected(request, settings, "account_disabled")
     return user
 
 
@@ -296,3 +280,14 @@ def _unauthorized() -> HTTPException:
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Sesión requerida.",
     )
+
+
+def _session_rejected(request: Request, settings: Settings, reason: str) -> HTTPException:
+    """Record a rejected session and build its response."""
+    log_security_event(
+        "session_rejected",
+        reason=reason,
+        client_ip=resolve_client_ip(request, settings),
+        path=request.url.path,
+    )
+    return _unauthorized()

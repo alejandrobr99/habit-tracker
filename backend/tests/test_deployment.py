@@ -110,3 +110,57 @@ def test_security_headers_are_present(tmp_path: Path):
     assert response.headers["x-frame-options"] == "DENY"
     assert response.headers["referrer-policy"] == "no-referrer"
     assert response.headers["permissions-policy"] == ("camera=(), geolocation=(), microphone=()")
+    assert response.headers["cross-origin-opener-policy"] == "same-origin"
+    assert response.headers["cross-origin-resource-policy"] == "same-origin"
+
+
+def test_content_security_policy_contains_no_unsafe_source(tmp_path: Path):
+    application = create_app(production_settings(build_frontend(tmp_path)))
+
+    with TestClient(application) as client:
+        policy = client.get("/").headers["content-security-policy"]
+
+    assert "unsafe-inline" not in policy
+    assert "unsafe-eval" not in policy
+    assert "default-src 'self'" in policy
+    assert "frame-ancestors 'none'" in policy
+    assert "object-src 'none'" in policy
+    assert "base-uri 'none'" in policy
+
+
+def test_security_headers_also_cover_error_responses(tmp_path: Path):
+    application = create_app(production_settings(build_frontend(tmp_path)))
+
+    with TestClient(application) as client:
+        unauthorized = client.get("/api/v1/habits")
+        missing = client.get("/api/v1/missing")
+
+    for response in (unauthorized, missing):
+        assert response.headers["content-security-policy"]
+        assert response.headers["x-content-type-options"] == "nosniff"
+    assert unauthorized.status_code == status.HTTP_401_UNAUTHORIZED
+    assert missing.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_transport_security_is_production_only(tmp_path: Path):
+    production = create_app(production_settings(build_frontend(tmp_path)))
+    development = create_app(Settings(allowed_hosts=["testserver"]))
+
+    with TestClient(production) as client:
+        secured = client.get("/health")
+    with TestClient(development) as client:
+        local = client.get("/health")
+
+    assert secured.headers["strict-transport-security"] == ("max-age=31536000; includeSubDomains")
+    assert "strict-transport-security" not in local.headers
+
+
+def test_api_responses_are_never_stored(tmp_path: Path):
+    application = create_app(production_settings(build_frontend(tmp_path)))
+
+    with TestClient(application) as client:
+        api = client.get("/api/v1/habits")
+        page = client.get("/")
+
+    assert api.headers["cache-control"] == "no-store"
+    assert "cache-control" not in page.headers

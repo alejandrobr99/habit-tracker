@@ -4,8 +4,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+MIN_REQUEST_BYTES = 1024
+MAX_REQUEST_BYTES = 1_048_576
+MAX_TRUSTED_PROXY_HOPS = 4
 
 
 class Settings(BaseSettings):
@@ -29,6 +33,12 @@ class Settings(BaseSettings):
     bootstrap_admin_display_name: str = "Administrador"
     bootstrap_admin_password: SecretStr | None = None
     frontend_dist: Path | None = None
+    trusted_proxy_hops: int = Field(default=0, ge=0, le=MAX_TRUSTED_PROXY_HOPS)
+    max_request_bytes: int = Field(
+        default=65_536,
+        ge=MIN_REQUEST_BYTES,
+        le=MAX_REQUEST_BYTES,
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="PLANNER_",

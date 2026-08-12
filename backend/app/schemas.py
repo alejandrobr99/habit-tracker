@@ -436,6 +436,8 @@ class LoginRequest(BaseModel):
     username: str = Field(min_length=1, max_length=40)
     password: str = Field(min_length=1, max_length=128)
 
+    model_config = ConfigDict(extra="forbid")
+
     @field_validator("username", mode="before")
     @classmethod
     def normalize_username(cls, value: object) -> object:
@@ -464,6 +466,8 @@ class PasswordChangeRequest(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(min_length=12, max_length=128)
 
+    model_config = ConfigDict(extra="forbid")
+
 
 class AdminUserCreate(BaseModel):
     """Data used by an administrator to provision an account."""
@@ -476,6 +480,8 @@ class AdminUserCreate(BaseModel):
     display_name: str = Field(min_length=1, max_length=80)
     temporary_password: str = Field(min_length=12, max_length=128)
     role: UserRole = UserRole.MEMBER
+
+    model_config = ConfigDict(extra="forbid")
 
     @field_validator("username", mode="before")
     @classmethod
@@ -497,6 +503,8 @@ class AdminUserUpdate(BaseModel):
     role: UserRole | None = None
     status: UserStatus | None = None
 
+    model_config = ConfigDict(extra="forbid")
+
     @field_validator("display_name", mode="before")
     @classmethod
     def clean_display_name(cls, value: object) -> object:
@@ -515,3 +523,5 @@ class AdminPasswordReset(BaseModel):
     """Temporary password selected by an administrator."""
 
     temporary_password: str = Field(min_length=12, max_length=128)
+
+    model_config = ConfigDict(extra="forbid")
