@@ -42,7 +42,8 @@ BADGES = {
     BadgeCode.REWARD_CLAIMED: ("Recompensa elegida", "Primer canje de recompensa."),
 }
 STEADY_CHECK_IN_COUNT = 7
-_REDEMPTION_LOCK = Lock()
+STREAK_RECOVERY_COST_XP = 120
+_XP_SPENDING_LOCK = Lock()
 
 
 @dataclass(frozen=True)
@@ -342,7 +343,7 @@ def redeem_reward(
     idempotency_key: str,
 ) -> tuple[RewardRedemption, bool]:
     """Redeem a reward and debit XP in one transaction."""
-    with _REDEMPTION_LOCK:
+    with _XP_SPENDING_LOCK:
         return _redeem_reward_locked(db, user_id, reward_id, idempotency_key)
 
 
@@ -433,6 +434,19 @@ def create_recovery(
     today: date,
 ) -> StreakRecovery:
     """Recover an eligible missing date for a daily habit."""
+    with _XP_SPENDING_LOCK:
+        return _create_recovery_locked(db, user_id, habit_id, recovered_date, today=today)
+
+
+def _create_recovery_locked(
+    db: Session,
+    user_id: int,
+    habit_id: int,
+    recovered_date: date,
+    *,
+    today: date,
+) -> StreakRecovery:
+    """Serialize recovery eligibility, XP debit, and persistence."""
     habit = db.scalar(
         select(Habit).where(
             Habit.id == habit_id,
@@ -443,7 +457,7 @@ def create_recovery(
         raise GamificationNotFoundError
     if habit.status != HabitStatus.ACTIVE or habit.frequency != HabitFrequency.DAILY:
         raise GamificationConflictError
-    if recovered_date not in {today - timedelta(days=1), today - timedelta(days=2)}:
+    if recovered_date != today - timedelta(days=1):
         raise GamificationValidationError
     has_check_in = db.scalar(
         select(HabitCheckIn.id).where(
@@ -470,6 +484,8 @@ def create_recovery(
     )
     if monthly is not None:
         raise GamificationConflictError
+    if progress(db, user_id).available_xp < STREAK_RECOVERY_COST_XP:
+        raise GamificationConflictError
     recovery = StreakRecovery(
         habit_id=habit_id,
         recovered_date=recovered_date,
@@ -477,6 +493,16 @@ def create_recovery(
     )
     db.add(recovery)
     try:
+        _add_xp(
+            db,
+            user_id,
+            XpRecognition(
+                amount=-STREAK_RECOVERY_COST_XP,
+                source_type=XpSourceType.STREAK_RECOVERY,
+                source_id=f"{habit_id}:{recovered_date.isoformat()}",
+                occurred_on=recovered_date,
+            ),
+        )
         db.commit()
     except IntegrityError as error:
         db.rollback()

@@ -30,6 +30,15 @@ describe("HabitsPage", () => {
     let checked = false;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
+      if (url.endsWith("/gamification/progress")) {
+        return response({
+          lifetime_xp: 260,
+          available_xp: 160,
+          level: 3,
+          level_start_xp: 200,
+          next_level_xp: 300,
+        });
+      }
       if (url.includes("weekly-summary")) {
         return response({
           week_start: "2026-08-03",
@@ -95,9 +104,10 @@ describe("HabitsPage", () => {
       await screen.findByText("El ritmo está completo"),
     ).toBeInTheDocument();
     expect(screen.getByText("días")).toBeInTheDocument();
+    expect(screen.getByText("XP disponible: 160")).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Recuperar ayer" }),
+      screen.getByRole("button", { name: "Recuperar ayer · 120 XP" }),
     );
 
     await waitFor(() => {
@@ -113,8 +123,66 @@ describe("HabitsPage", () => {
     });
     expect(
       await screen.findByText(
-        "Ayer quedó recuperado para la continuidad de tu racha.",
+        "La continuidad de tu racha quedó recuperada. Se descontaron 120 XP.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("disables only recovery when available XP is insufficient", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/gamification/progress")) {
+        return response({
+          lifetime_xp: 90,
+          available_xp: 80,
+          level: 1,
+          level_start_xp: 0,
+          next_level_xp: 100,
+        });
+      }
+      if (url.includes("weekly-summary")) {
+        return response({
+          week_start: "2026-08-03",
+          week_end: "2026-08-09",
+          habits: [
+            {
+              habit,
+              check_in_dates: [],
+              completed_count: 0,
+              target_count: 7,
+              current_streak: 0,
+            },
+          ],
+        });
+      }
+      return response([habit]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <HabitsPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const recoveryButton = await screen.findByRole("button", {
+      name: "Recuperar ayer · 120 XP",
+    });
+    expect(screen.getByText("XP disponible: 80")).toBeInTheDocument();
+    expect(screen.getByText("Necesitas 120 XP disponibles")).toBeInTheDocument();
+    expect(recoveryButton).toBeDisabled();
+    expect(
+      screen.getAllByRole("button", {
+        name: new RegExp(`Marcar ${habit.name}`),
+      })[0],
+    ).toBeEnabled();
   });
 });

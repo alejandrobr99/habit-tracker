@@ -205,7 +205,7 @@ def post_streak_recovery(
     except service.GamificationNotFoundError as error:
         raise _not_found("Habit not found") from error
     except service.GamificationConflictError as error:
-        raise _conflict("Habit or monthly recovery is not eligible") from error
+        raise _conflict("Recovery is not eligible or available XP is insufficient") from error
     except service.GamificationValidationError as error:
         raise _validation("Recovered date is not eligible") from error
     return StreakRecoveryRead.model_validate(recovery)

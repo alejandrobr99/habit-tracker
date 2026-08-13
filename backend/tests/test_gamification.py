@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -16,6 +17,10 @@ LEDGER_ENTRY_COUNT = 2
 SEVEN_CHECK_INS_XP = 70
 AVAILABLE_AFTER_REDEMPTION = 40
 XP_AFTER_REVIEW = 85
+STREAK_RECOVERY_COST_XP = 120
+RECOVERY_LEDGER_ENTRY_COUNT = 13
+RECOVERY_LIFETIME_LEVEL = 2
+RECOVERED_STREAK_DAYS = 13
 
 
 def create_habit(client: TestClient, name: str = "Walk") -> int:
@@ -166,26 +171,52 @@ def test_streak_recovery_and_challenge_validation(client: TestClient):
     habit_id = create_habit(client, "Recover")
     today = datetime.now(UTC).date()
     recovered_date = today - timedelta(days=1)
+    for offset in range(2, 14):
+        check_date = today - timedelta(days=offset)
+        response = client.put(
+            f"/api/v1/habits/{habit_id}/check-ins/{check_date.isoformat()}",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    progress_before = client.get("/api/v1/gamification/progress").json()
+    assert progress_before["lifetime_xp"] == STREAK_RECOVERY_COST_XP
+    assert progress_before["available_xp"] == STREAK_RECOVERY_COST_XP
+
+    too_old = client.post(
+        f"/api/v1/habits/{habit_id}/streak-recoveries",
+        json={"recovered_date": (today - timedelta(days=2)).isoformat()},
+    )
+    assert too_old.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
     response = client.post(
         f"/api/v1/habits/{habit_id}/streak-recoveries",
         json={"recovered_date": recovered_date.isoformat()},
     )
     assert response.status_code == status.HTTP_201_CREATED
-    assert (
-        client.post(
-            f"/api/v1/habits/{habit_id}/streak-recoveries",
-            json={"recovered_date": (today - timedelta(days=2)).isoformat()},
-        ).status_code
-        == status.HTTP_409_CONFLICT
+    repeated = client.post(
+        f"/api/v1/habits/{habit_id}/streak-recoveries",
+        json={"recovered_date": recovered_date.isoformat()},
     )
-    assert client.get("/api/v1/gamification/progress").json()["lifetime_xp"] == 0
+    assert repeated.status_code == status.HTTP_201_CREATED
+    assert repeated.json()["id"] == response.json()["id"]
+
+    progress_after = client.get("/api/v1/gamification/progress").json()
+    assert progress_after["lifetime_xp"] == STREAK_RECOVERY_COST_XP
+    assert progress_after["available_xp"] == 0
+    assert progress_after["level"] == RECOVERY_LIFETIME_LEVEL
+    ledger = client.get("/api/v1/gamification/xp-entries").json()
+    recovery_debits = [entry for entry in ledger if entry["source_type"] == "streak_recovery"]
+    assert len(ledger) == RECOVERY_LEDGER_ENTRY_COUNT
+    assert len(recovery_debits) == 1
+    assert recovery_debits[0]["amount"] == -STREAK_RECOVERY_COST_XP
+    assert recovery_debits[0]["occurred_on"] == recovered_date.isoformat()
 
     monday = today - timedelta(days=today.weekday())
     summary = client.get(
         "/api/v1/habits/weekly-summary",
         params={"week_start": monday.isoformat()},
     ).json()
-    assert summary["habits"][0]["current_streak"] == 1
+    assert summary["habits"][0]["current_streak"] == RECOVERED_STREAK_DAYS
     invalid = client.post(
         "/api/v1/gamification/weekly-challenges",
         json={
@@ -200,6 +231,33 @@ def test_streak_recovery_and_challenge_validation(client: TestClient):
         params={"week_start": (monday + timedelta(weeks=5)).isoformat()},
     )
     assert missing.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_streak_recovery_requires_available_xp(
+    client: TestClient,
+    session_factory: sessionmaker[Session],
+):
+    """Reject a recovery without persisting it when available XP is insufficient."""
+    habit_id = create_habit(client, "Insufficient recovery")
+    recovered_date = datetime.now(UTC).date() - timedelta(days=1)
+
+    response = client.post(
+        f"/api/v1/habits/{habit_id}/streak-recoveries",
+        json={"recovered_date": recovered_date.isoformat()},
+    )
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert "available XP is insufficient" in response.json()["detail"]
+    with session_factory() as db:
+        assert (
+            db.scalar(
+                select(StreakRecovery.id).where(
+                    StreakRecovery.habit_id == habit_id,
+                    StreakRecovery.recovered_date == recovered_date,
+                ),
+            )
+            is None
+        )
 
 
 def test_database_rejects_two_recoveries_for_the_same_habit_month(

@@ -115,6 +115,7 @@ class XpSourceType(StrEnum):
     FINANCE_BUDGET_SETUP = "finance_budget_setup"
     FINANCE_WEEKLY_REVIEW = "finance_weekly_review"
     REWARD_REDEMPTION = "reward_redemption"
+    STREAK_RECOVERY = "streak_recovery"
 
 
 class BadgeCode(StrEnum):

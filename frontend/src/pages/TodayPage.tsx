@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Flame, Leaf, Target } from "lucide-react";
+import { ArrowRight, Check, Flame } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -33,6 +33,10 @@ export function TodayPage() {
     queryKey: ["weekly-summary", weekKey],
     queryFn: () => plannerApi.getWeeklySummary(weekKey),
   });
+  const progressQuery = useQuery({
+    queryKey: ["progress"],
+    queryFn: plannerApi.getProgress,
+  });
   const checkInMutation = useMutation({
     mutationFn: async ({
       checked,
@@ -51,7 +55,10 @@ export function TodayPage() {
       if (variables.checked) {
         setCelebratedHabit(null);
         setSpectacle(null);
-        await queryClient.invalidateQueries({ queryKey: ["weekly-summary"] });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["weekly-summary"] }),
+          queryClient.invalidateQueries({ queryKey: ["progress"] }),
+        ]);
         return;
       }
 
@@ -61,10 +68,13 @@ export function TodayPage() {
       const before = summaryQuery.data?.habits.find(
         (item) => item.habit.id === variables.habitId,
       );
-      await queryClient.invalidateQueries({
-        queryKey: ["weekly-summary", weekKey],
-        refetchType: "none",
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["weekly-summary", weekKey],
+          refetchType: "none",
+        }),
+        queryClient.invalidateQueries({ queryKey: ["progress"] }),
+      ]);
       const updated = await queryClient.fetchQuery({
         queryKey: ["weekly-summary", weekKey],
         queryFn: () => plannerApi.getWeeklySummary(weekKey),
@@ -99,23 +109,39 @@ export function TodayPage() {
       summary,
     ]) ?? [],
   );
+  const isCheckedToday = (habitId: number) =>
+    summaries.get(habitId)?.check_in_dates.includes(todayKey) ?? false;
   const doneToday = habits.filter((habit) =>
-    summaries.get(habit.id)?.check_in_dates.includes(todayKey),
+    isCheckedToday(habit.id),
   ).length;
-  const activeStreaks = [...summaries.values()].filter(
-    (summary) => summary.current_streak > 0,
-  ).length;
+  const pendingToday = habits.length - doneToday;
+  const orderedHabits = [
+    ...habits.filter((habit) => !isCheckedToday(habit.id)),
+    ...habits.filter((habit) => isCheckedToday(habit.id)),
+  ];
+  const featuredStreak = [...summaries.values()].reduce<{
+    currentStreak: number;
+    frequency: "daily" | "weekly";
+  }>(
+    (highest, summary) =>
+      summary.current_streak > highest.currentStreak
+        ? {
+            currentStreak: summary.current_streak,
+            frequency: summary.habit.frequency,
+          }
+        : highest,
+    {
+      currentStreak: 0,
+      frequency: "daily",
+    },
+  );
   const progress = habits.length === 0 ? 0 : (doneToday / habits.length) * 100;
-  const completedThisWeek = [...summaries.values()].reduce(
-    (total, summary) => total + summary.completed_count,
-    0,
-  );
-  const weeklyTarget = [...summaries.values()].reduce(
-    (total, summary) => total + summary.target_count,
-    0,
-  );
-  const weeklyProgress =
-    weeklyTarget === 0 ? 0 : (completedThisWeek / weeklyTarget) * 100;
+  const levelProgress = progressQuery.data
+    ? progressQuery.data.lifetime_xp - progressQuery.data.level_start_xp
+    : 0;
+  const levelRange = progressQuery.data
+    ? progressQuery.data.next_level_xp - progressQuery.data.level_start_xp
+    : 100;
 
   return (
     <div className="page">
@@ -156,34 +182,45 @@ export function TodayPage() {
         </div>
       </header>
 
-      <section aria-label="Resumen del día" className="summary-cards">
-        <article className="summary-card">
-          <span className="summary-card__icon summary-card__icon--sage">
-            <Target aria-hidden="true" size={19} />
-          </span>
-          <div>
-            <strong>{doneToday}/{habits.length}</strong>
-            <span>hábitos de hoy</span>
-          </div>
-        </article>
-        <article className="summary-card">
-          <span className="summary-card__icon summary-card__icon--clay">
-            <Flame aria-hidden="true" size={19} />
-          </span>
-          <div>
-            <strong>{activeStreaks}</strong>
-            <span>rachas activas</span>
-          </div>
-        </article>
-        <article className="summary-card">
-          <span className="summary-card__icon summary-card__icon--gold">
-            <Leaf aria-hidden="true" size={19} />
-          </span>
-          <div>
-            <strong>{Math.round(weeklyProgress)}%</strong>
-            <span>ritmo semanal</span>
-          </div>
-        </article>
+      <section aria-label="Progreso de hoy" className="today-progress">
+        {progressQuery.isLoading ? (
+          <p className="today-progress__status">Consultando tu progreso de XP.</p>
+        ) : progressQuery.isError ? (
+          <p className="today-progress__status">
+            El progreso de XP no está disponible por ahora. Puedes seguir registrando tu día.
+          </p>
+        ) : progressQuery.data ? (
+          <>
+            <div className="today-progress__level">
+              <span>Nivel</span>
+              <strong>{progressQuery.data.level}</strong>
+            </div>
+            <div className="today-progress__xp">
+              <p>
+                <strong>{progressQuery.data.lifetime_xp} XP</strong> de por vida ·{" "}
+                {progressQuery.data.next_level_xp - progressQuery.data.lifetime_xp} XP para el
+                siguiente nivel
+              </p>
+              <progress
+                aria-label={`Progreso del nivel ${progressQuery.data.level}`}
+                max={levelRange}
+                value={levelProgress}
+              />
+              <span>{progressQuery.data.available_xp} XP disponibles</span>
+            </div>
+          </>
+        ) : null}
+        <div className="today-progress__metric">
+          <span>Racha destacada</span>
+          <strong>
+            {featuredStreak.currentStreak}{" "}
+            {featuredStreak.frequency === "daily" ? "días" : "semanas"}
+          </strong>
+        </div>
+        <div className="today-progress__metric">
+          <span>Pendientes de hoy</span>
+          <strong>{pendingToday}</strong>
+        </div>
       </section>
 
       {celebratedHabit && (
@@ -199,7 +236,11 @@ export function TodayPage() {
         <div className="section-heading">
           <div>
             <span className="eyebrow">Para hoy</span>
-            <h2>Tu lista breve</h2>
+            <h2>
+              {pendingToday > 0
+                ? `${pendingToday} por registrar hoy`
+                : "Todo registrado por hoy"}
+            </h2>
           </div>
           <Link className="inline-link" to="/habitos">
             Ver semana
@@ -243,11 +284,8 @@ export function TodayPage() {
           />
         ) : (
           <div className="today-list">
-            {habits.map((habit) => {
-              const checked =
-                summaries
-                  .get(habit.id)
-                  ?.check_in_dates.includes(todayKey) ?? false;
+            {orderedHabits.map((habit) => {
+              const checked = isCheckedToday(habit.id);
               const streak = summaries.get(habit.id)?.current_streak ?? 0;
               return (
                 <article

@@ -61,6 +61,10 @@ export function HabitsPage() {
     queryKey: ["weekly-summary", weekKey],
     queryFn: () => plannerApi.getWeeklySummary(weekKey),
   });
+  const progressQuery = useQuery({
+    queryKey: ["progress"],
+    queryFn: plannerApi.getProgress,
+  });
 
   const saveMutation = useMutation({
     mutationFn: ({
@@ -111,7 +115,10 @@ export function HabitsPage() {
       if (variables.checked) {
         setCelebratedCheck(null);
         setSpectacle(null);
-        await queryClient.invalidateQueries({ queryKey: ["weekly-summary"] });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["weekly-summary"] }),
+          queryClient.invalidateQueries({ queryKey: ["progress"] }),
+        ]);
         return;
       }
 
@@ -121,10 +128,13 @@ export function HabitsPage() {
       const before = summaryQuery.data?.habits.find(
         (item) => item.habit.id === variables.habitId,
       );
-      await queryClient.invalidateQueries({
-        queryKey: ["weekly-summary", weekKey],
-        refetchType: "none",
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["weekly-summary", weekKey],
+          refetchType: "none",
+        }),
+        queryClient.invalidateQueries({ queryKey: ["progress"] }),
+      ]);
       const updated = await queryClient.fetchQuery({
         queryKey: ["weekly-summary", weekKey],
         queryFn: () => plannerApi.getWeeklySummary(weekKey),
@@ -162,7 +172,7 @@ export function HabitsPage() {
       setRecoveryMessage({
         habitId,
         kind: "success",
-        text: "Ayer quedó recuperado para la continuidad de tu racha.",
+        text: "La continuidad de tu racha quedó recuperada. Se descontaron 120 XP.",
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["weekly-summary"] }),
@@ -171,13 +181,15 @@ export function HabitsPage() {
       ]);
     },
     onError: (error, habitId) => {
-      const recoverable = error instanceof ApiError
-        && (error.status === 409 || error.status === 422);
+      const isConflict = error instanceof ApiError && error.status === 409;
+      const isInvalidDate = error instanceof ApiError && error.status === 422;
       setRecoveryMessage({
         habitId,
         kind: "error",
-        text: recoverable
-          ? "Ayer no está disponible para recuperación. Puedes continuar con el registro de hoy."
+        text: isConflict
+          ? "No pudimos recuperar ayer: puede faltar XP disponible o esta recuperación ya no ser elegible. Puedes continuar con el registro de hoy."
+          : isInvalidDate
+            ? "Ayer no está disponible para recuperación. Puedes continuar con el registro de hoy."
           : "No pudimos recuperar ayer. Inténtalo nuevamente.",
       });
     },
@@ -298,6 +310,19 @@ export function HabitsPage() {
         </div>
       </section>
 
+      <aside className="recovery-balance">
+        <strong>Recuperación de racha</strong>
+        {progressQuery.isLoading ? (
+          <span>Consultando XP disponible.</span>
+        ) : progressQuery.isError ? (
+          <span>
+            No pudimos consultar tu XP disponible. La recuperación no está disponible por ahora.
+          </span>
+        ) : (
+          <span>XP disponible: {progressQuery.data?.available_xp}</span>
+        )}
+      </aside>
+
       {celebratedCheck && (
         <Celebration
           description="La semana ya refleja este registro."
@@ -365,18 +390,30 @@ export function HabitsPage() {
                       {summary?.target_count ?? 0} esta semana
                     </p>
                     {habit.frequency === "daily" && (
-                      <button
-                        className="recovery-action"
-                        disabled={recoveryMutation.isPending}
-                        onClick={() => {
-                          setRecoveryMessage(null);
-                          recoveryMutation.mutate(habit.id);
-                        }}
-                        type="button"
-                      >
-                        <RotateCcw aria-hidden="true" size={14} />
-                        Recuperar ayer
-                      </button>
+                      <div className="recovery-control">
+                        <button
+                          className="recovery-action"
+                          disabled={
+                            progressQuery.isLoading
+                            || progressQuery.isError
+                            || (progressQuery.data?.available_xp ?? 0) < 120
+                            || recoveryMutation.isPending
+                          }
+                          onClick={() => {
+                            setRecoveryMessage(null);
+                            recoveryMutation.mutate(habit.id);
+                          }}
+                          type="button"
+                        >
+                          <RotateCcw aria-hidden="true" size={14} />
+                          Recuperar ayer · 120 XP
+                        </button>
+                        {progressQuery.data && progressQuery.data.available_xp < 120 && (
+                          <span className="recovery-help">
+                            Necesitas 120 XP disponibles
+                          </span>
+                        )}
+                      </div>
                     )}
                     {recoveryMessage?.habitId === habit.id && (
                       <p

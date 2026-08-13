@@ -16,6 +16,8 @@ productividad genérica ni en un sistema contable.
 - Mantener hábitos y finanzas como dominios separados dentro de una experiencia coherente.
 - Priorizar captura rápida, estados explícitos y retroalimentación sobria.
 - Hacer visible el progreso mediante gamificación opcional, privada y no moralizante.
+- Dar prioridad visual a cerrar las acciones elegidas para hoy mediante pendientes, XP, nivel y
+  racha, sin presión artificial.
 - Diseñar contratos que permitan evolucionar backend y frontend de forma independiente.
 - Hacer de las especificaciones la fuente de verdad antes de implementar.
 
@@ -153,6 +155,8 @@ SQLite, sin acoplar el contrato HTTP al motor elegido.
 - **D-000-13:** leer primero la especificación directamente afectada y consultar constitución,
   diseño y referencias auxiliares solo cuando la decisión lo requiera; los skills conservan los
   detalles de cada dominio para reducir contexto innecesario.
+- **D-000-14:** usar la vista Hoy como centro de acción y progreso, con pendientes primero y
+  gamificación visible, sin temporizadores, amenaza de pérdida ni lenguaje moralizante.
 
 ## Preguntas abiertas
 

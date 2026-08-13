@@ -70,8 +70,8 @@ Implicaciones:
 - Tratar la racha como representación útil, no como verdad moral.
 - Ofrecer reparación limitada y transparente cerca de la interrupción.
 - No borrar historial ni ocultar que una fecha fue recuperada.
-- No dar XP por recuperar: la reparación protege continuidad sin crear incentivo para fabricar
-  huecos.
+- No dar XP positivo por recuperar: la reparación protege continuidad sin premiar la creación de
+  huecos. Si consume XP disponible, el costo debe ser fijo, visible, confirmado e idempotente.
 - Siempre ofrecer continuar hoy, incluso si no hay reparación disponible.
 - Evitar “protege tu racha”, alarmas, degradación visual y amenazas de pérdida.
 

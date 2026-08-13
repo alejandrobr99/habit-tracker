@@ -3,13 +3,15 @@
 ## Estado
 
 Primera versión implementada. Este contrato documenta la progresión existente y define cómo se
-presenta el reconocimiento sin presión, comparación ni pérdida punitiva.
+presenta el reconocimiento con prioridad diaria, sin culpa, comparación ni pérdida automática.
 
 ## Objetivos
 
 - Reconocer acciones elegidas mediante XP, niveles e insignias comprensibles.
 - Permitir un desafío semanal opcional y una recompensa personal definida por el usuario.
 - Conservar la continuidad de una racha diaria mediante una recuperación limitada y transparente.
+- Dar presencia principal en Hoy al XP, nivel, racha y avance diario para orientar la siguiente
+  acción pendiente.
 - Ofrecer retroalimentación visual inmediata y accesible después de un éxito confirmado.
 - Mantener la gamificación privada para la cuenta autenticada y secundaria frente a hábitos y
   finanzas.
@@ -18,7 +20,8 @@ presenta el reconocimiento sin presión, comparación ni pérdida punitiva.
 
 - Clasificaciones, perfiles sociales, rivales, avatares o actividad compartida.
 - Recompensas aleatorias, cajas sorpresa, multiplicadores, apuestas o escasez artificial.
-- Penalizaciones, pérdida de XP, degradación de nivel o mensajes de fracaso.
+- Penalizaciones automáticas, degradación de nivel o mensajes de fracaso. El costo explícito y
+  confirmado de una recuperación o recompensa sí reduce XP disponible.
 - Diagnosticar una conducta, afirmar que un hábito está formado o medir bienestar.
 - Premiar montos, saldos, ahorro, gasto o cantidad de movimientos financieros.
 - Sonido, vibración, notificaciones o movimiento decorativo continuo.
@@ -47,8 +50,10 @@ Catálogo de XP:
 | Revisión financiera semanal | 15 |
 | Desafío semanal completado | 40 |
 | Canje de recompensa | `-cost_xp` |
+| Recuperación de ayer | `-120` |
 
-Una recuperación de racha no crea XP, progreso de desafío ni insignias.
+Una recuperación de racha no crea XP positivo, progreso de desafío ni insignias. Cobra 120 XP
+disponible mediante una entrada negativa idempotente.
 
 ### Progress
 
@@ -99,11 +104,14 @@ Solo se canjea una recompensa activa cuando hay XP disponible suficiente.
 | Campo | Tipo | Regla |
 | --- | --- | --- |
 | `habit_id` | integer | Hábito diario activo |
-| `recovered_date` | date | Ayer o anteayer |
+| `recovered_date` | date | Solo ayer |
 | `recovery_month` | string | `YYYY-MM`, una por hábito y mes |
 
 La recuperación conserva continuidad en el cálculo de racha, pero no crea un check-in ni altera el
-historial visible de cumplimiento.
+historial visible de cumplimiento. Requiere al menos 120 XP disponible y crea, en la misma
+transacción, una entrada `streak_recovery` de `-120` con fuente estable por hábito y fecha. Repetir
+la misma recuperación devuelve el registro existente sin cobrar otra vez. Saldo insuficiente,
+recuperación mensual ya usada o carrera perdida con otro gasto responden `409`.
 
 ### FinanceWeeklyReview
 
@@ -135,11 +143,17 @@ fechas o entradas inválidas `422`.
 
 - **Carga:** superficie estable para progreso, desafío, insignias y recompensas.
 - **Vacío:** explica cómo crear una recompensa o desafío sin presentarlos como obligación.
+- **Prioridad diaria:** Hoy presenta nivel, XP acumulado, XP disponible, racha destacada y cantidad
+  pendiente antes del detalle secundario de la semana.
 - **Progreso:** nivel, XP acumulado y disponible con texto además de representación gráfica.
 - **Logro:** confirmación después de una respuesta exitosa; no se anticipa al servidor.
 - **Insuficiente:** “XP insuficiente” deshabilita solo el canje afectado y no juzga.
 - **Expirado:** “La semana terminó”; conserva el progreso y no usa color destructivo.
-- **Recuperado:** confirma continuidad restaurada sin dibujar un check-in inexistente.
+- **Recuperable:** muestra antes de confirmar “Recuperar ayer · 120 XP” y el XP disponible.
+- **Recuperado:** confirma continuidad restaurada y costo aplicado sin dibujar un check-in
+  inexistente.
+- **XP insuficiente:** deshabilita la recuperación y explica el saldo requerido sin sugerir
+  actividad compulsiva.
 - **Error:** conserva datos previos, explica qué acción no se completó y permite continuar.
 - **Movimiento reducido:** sustituye desplazamiento, escala y partículas por borde, color y texto.
 
@@ -164,8 +178,14 @@ fechas o entradas inválidas `422`.
 - Un canje repetido o concurrente no cobra dos veces ni deja saldo negativo.
 - Un desafío completado entrega XP una vez; uno expirado no penaliza.
 - Una recuperación elegible afecta solo la racha y queda registrada una vez.
+- Solo ayer puede recuperarse; el débito de 120 XP y la recuperación se confirman o revierten
+  juntos.
+- Repetir la recuperación no cobra dos veces y dos gastos concurrentes no dejan XP disponible
+  negativo.
 - Los eventos financieros permitidos no incluyen montos, saldos ni cantidad de movimientos.
 - La función principal sigue disponible aunque el usuario ignore gamificación.
+- Hoy ordena pendientes antes que completados y mantiene XP, nivel y racha visibles sin
+  temporizador, amenaza ni lenguaje de fracaso.
 - El UI explica progreso con texto, funciona con teclado y no depende del color.
 - Toda celebración ocurre después del éxito, puede descartarse, no atrapa foco y tiene alternativa
   estática con `prefers-reduced-motion`.
@@ -188,3 +208,7 @@ fechas o entradas inválidas `422`.
   conductual.
 - **D-003-10:** reservar la celebración escénica para día completo, meta semanal y rachas de 3, 7,
   14, 30 o múltiplos de 30, priorizando una sola escena cuando coincidan.
+- **D-003-11:** limitar la recuperación a ayer y cobrar 120 XP disponible de forma atómica e
+  idempotente, sin reducir XP histórico ni nivel.
+- **D-003-12:** elevar XP, nivel, racha y pendientes en Hoy para orientar el cierre diario mediante
+  jerarquía y orden, sin cuentas regresivas, culpa ni pérdida automática.

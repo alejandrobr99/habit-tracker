@@ -13,7 +13,8 @@ acentos terrosos y formas botánicas abstractas. Se evita la estética genérica
 3. **Jerarquía editorial:** títulos expresivos y datos densos en tipografía funcional.
 4. **Calidez contenida:** neutros cálidos, un acento dominante y tonos de celebración secundarios.
 5. **Accesibilidad:** contraste AA, teclado completo y significado independiente del color.
-6. **Progreso sin juicio:** reconocer constancia y recuperación sin culpa, comparación ni urgencia.
+6. **Progreso con prioridad:** hacer visible la siguiente acción y la continuidad sin culpa,
+   comparación ni urgencia artificial.
 
 ## Tokens
 
@@ -124,11 +125,15 @@ La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 
 ### Gamificación
 
-- XP, nivel e insignias son información secundaria; nunca desplazan la tarea principal.
+- En Hoy, XP, nivel y racha forman el contexto principal junto a los pendientes; la acción primaria
+  sigue siendo registrar el hábito elegido.
+- Fuera de Hoy y Progreso, la gamificación permanece secundaria frente a la tarea del dominio.
 - Los desafíos muestran objetivo, progreso, periodo y estado sin cuenta regresiva alarmista.
 - Las recompensas personales usan el nombre escrito por el usuario y no simulan valor monetario.
 - Una racha interrumpida ofrece continuidad o recuperación con texto neutral; no usa pérdida visual,
   colores destructivos ni mensajes de culpa.
+- Toda recuperación muestra su costo de 120 XP y el saldo disponible antes de confirmar; nunca
+  oculta el débito ni presenta continuar hoy como una opción inferior.
 - El check-in confirmado puede usar una celebración local; nivel, insignia, desafío y recompensa
   alcanzados pueden usar una celebración de hito de hasta 600 ms. Los hitos de racha y meta
   especificados pueden usar la escena excepcional definida en Movimiento.
@@ -224,3 +229,5 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
   superficie funcional ni como portadores de significado.
 - **D-DS-14:** permitir una escena de viewport de hasta 1200 ms únicamente para los hitos definidos
   en `003-gamification.md`, con cierre, retirada automática y alternativa estática.
+- **D-DS-15:** priorizar en Hoy un bloque compacto de nivel, XP, racha y pendientes, usando orden y
+  escala para orientar la acción sin temporizadores ni señales destructivas.

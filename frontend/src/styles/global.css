@@ -1944,8 +1944,8 @@ p {
 
 .today-check {
   border-radius: 50%;
-  height: 28px;
-  width: 28px;
+  height: 48px;
+  width: 48px;
 }
 
 .today-check--checked,
@@ -2092,9 +2092,9 @@ p {
 
 .check-button {
   border-radius: 50%;
-  height: 30px;
+  height: 48px;
   margin: auto;
-  width: 30px;
+  width: 48px;
 }
 
 .check-button:hover {
@@ -2672,12 +2672,12 @@ p {
 .field input,
 .field select,
 .field textarea {
-  min-height: 44px;
+  min-height: 48px;
 }
 
 .icon-button {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
 }
 
 button:focus-visible,
@@ -2696,17 +2696,18 @@ textarea:focus-visible {
 }
 
 .recovery-action {
-  display: inline-flex;
-  min-height: 44px;
   align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  padding: 0;
-  border: 0;
   background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   color: var(--ink-soft);
+  display: inline-flex;
   font-size: 12px;
   font-weight: 650;
+  gap: 6px;
+  margin-top: 6px;
+  min-height: 48px;
+  padding: 0 12px;
 }
 
 .recovery-action:hover:not(:disabled) {
@@ -2718,6 +2719,34 @@ textarea:focus-visible {
 .recovery-action:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.recovery-balance {
+  align-items: baseline;
+  background: var(--sage-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+}
+
+.recovery-balance span,
+.recovery-help {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.recovery-control {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+}
+
+.recovery-help {
+  margin-top: 4px;
 }
 
 .recovery-message {
@@ -2733,6 +2762,107 @@ textarea:focus-visible {
 
 .recovery-message--error {
   color: var(--danger);
+}
+
+.today-progress {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 24px;
+  grid-template-columns: auto minmax(240px, 1.6fr) repeat(2, minmax(110px, 0.7fr));
+  margin-bottom: 48px;
+  padding: 24px 28px;
+}
+
+.today-progress__level,
+.today-progress__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.today-progress__level span,
+.today-progress__metric span,
+.today-progress__xp span {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.today-progress__level strong {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.today-progress__metric strong {
+  font-size: 17px;
+}
+
+.today-progress__xp p,
+.today-progress__status {
+  margin: 0;
+}
+
+.today-progress__xp p {
+  font-size: 13px;
+}
+
+.today-progress__xp progress {
+  display: block;
+  margin: 8px 0 6px;
+  width: 100%;
+}
+
+.today-progress__status {
+  color: var(--ink-soft);
+  font-size: 13px;
+  grid-column: span 2;
+  max-width: 48ch;
+}
+
+@media (max-width: 1050px) {
+  .today-progress {
+    grid-template-columns: auto minmax(220px, 1fr) repeat(2, minmax(100px, 0.6fr));
+    gap: 18px;
+    padding: 22px;
+  }
+}
+
+@media (max-width: 820px) {
+  .today-progress {
+    grid-template-columns: auto 1fr;
+  }
+
+  .today-progress__metric {
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+}
+
+@media (max-width: 580px) {
+  .today-progress {
+    gap: 18px 14px;
+    margin-bottom: 32px;
+    padding: 20px 18px;
+  }
+
+  .today-progress__xp,
+  .today-progress__status {
+    grid-column: 1 / -1;
+  }
+
+  .today-progress__metric strong {
+    font-size: 15px;
+  }
+
+  .recovery-balance {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
 }
 
 .currency-status {
