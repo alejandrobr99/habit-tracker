@@ -12,6 +12,7 @@ import type {
   MonthlySummary,
   PlannerUser,
   Progress,
+  ProgressHeatmap,
   ResourceStatus,
   Reward,
   RewardInput,
@@ -24,7 +25,7 @@ import type {
 } from "../types/planner";
 
 const API_BASE = (
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"
+  import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1"
 ).replace(/\/$/, "");
 const configuredTimeout = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000");
 const API_TIMEOUT_MS =
@@ -171,6 +172,18 @@ export const plannerApi = {
     request<WeeklySummary>(
       `/habits/weekly-summary?week_start=${encodeURIComponent(weekStart)}`,
     ),
+  getProgressHeatmap: (
+    months: 1 | 3,
+    habitIds?: number[],
+  ): Promise<ProgressHeatmap> => {
+    const params = new URLSearchParams({ months: String(months) });
+    habitIds?.forEach((habitId) => {
+      params.append("habit_ids", String(habitId));
+    });
+    return request<ProgressHeatmap>(
+      `/habits/progress-heatmap?${params.toString()}`,
+    );
+  },
   getFinanceSettings: (): Promise<FinanceSettings> =>
     request<FinanceSettings>("/finance/settings"),
   putFinanceSettings: (baseCurrency: string): Promise<FinanceSettings> =>

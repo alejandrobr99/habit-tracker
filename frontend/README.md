@@ -8,7 +8,7 @@ npm install
 npm run dev
 ```
 
-La API se consulta en `http://localhost:8000/api`. Define `VITE_API_BASE_URL` para cambiarla.
+La API se consulta en `http://127.0.0.1:8000/api/v1`. Define `VITE_API_BASE_URL` para cambiarla.
 
 ```bash
 npm run lint

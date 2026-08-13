@@ -14,6 +14,7 @@ from app.schemas import (
     HabitCreate,
     HabitRead,
     HabitUpdate,
+    ProgressHeatmapRead,
     WeeklySummaryRead,
 )
 from app.services import habits as habit_service
@@ -23,6 +24,8 @@ router = APIRouter(
     tags=["habits"],
 )
 DatabaseSession = Annotated[Session, Depends(get_db)]
+MAX_HEATMAP_HABITS = 50
+VALID_HEATMAP_MONTHS = frozenset({1, 3})
 
 
 @router.get("", response_model=list[HabitRead])
@@ -85,6 +88,49 @@ def get_weekly_summary(
         selected_start,
         habit_status,
     )
+
+
+@router.get(
+    "/progress-heatmap",
+    response_model=ProgressHeatmapRead,
+)
+def get_progress_heatmap(
+    db: DatabaseSession,
+    user: ReadyUser,
+    months: int = 1,
+    habit_ids: Annotated[list[int] | None, Query()] = None,
+) -> ProgressHeatmapRead:
+    """Return daily progress over one or three calendar months."""
+    if months not in VALID_HEATMAP_MONTHS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="months must be 1 or 3",
+        )
+    if habit_ids is not None:
+        if len(habit_ids) > MAX_HEATMAP_HABITS:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="habit_ids cannot contain more than 50 values",
+            )
+        if len(habit_ids) != len(set(habit_ids)):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="habit_ids cannot contain duplicates",
+            )
+    try:
+        return habit_service.build_progress_heatmap(
+            db,
+            user.id,
+            months,
+            habit_ids,
+        )
+    except habit_service.HabitNotFoundError as error:
+        raise _habit_not_found() from error
+    except habit_service.InvalidHeatmapFilterError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Archived habits cannot be included in the progress heatmap",
+        ) from error
 
 
 @router.patch(

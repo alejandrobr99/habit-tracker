@@ -81,7 +81,7 @@ describe("FinancePage", () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        "http://localhost:8000/api/v1/finance/transactions",
+        "http://127.0.0.1:8000/api/v1/finance/transactions",
         expect.objectContaining({
           method: "POST",
           body: expect.stringContaining('"amount_minor":125050'),
@@ -145,7 +145,7 @@ describe("FinancePage", () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        "http://localhost:8000/api/v1/finance/settings",
+        "http://127.0.0.1:8000/api/v1/finance/settings",
         expect.objectContaining({
           method: "PUT",
           body: JSON.stringify({ base_currency: "USD" }),

@@ -10,6 +10,9 @@ from app.schemas import (
     HabitCreate,
     HabitUpdate,
     HabitWeeklySummary,
+    HeatmapDayRead,
+    HeatmapHabitRead,
+    ProgressHeatmapRead,
     WeeklySummaryRead,
 )
 from app.services import gamification
@@ -25,6 +28,10 @@ class ArchivedHabitError(Exception):
 
 class HabitConflictError(Exception):
     """Raised when a habit update would invalidate its history."""
+
+
+class InvalidHeatmapFilterError(Exception):
+    """Raised when a heatmap filter includes an archived habit."""
 
 
 def list_habits(
@@ -223,6 +230,78 @@ def build_weekly_summary(
         week_end=week_end,
         habits=summaries,
     )
+
+
+def build_progress_heatmap(
+    db: Session,
+    user_id: int,
+    months: int,
+    habit_ids: list[int] | None,
+) -> ProgressHeatmapRead:
+    """Build daily progress for active habits over one or three months."""
+    end_date = datetime.now(UTC).date()
+    start_date = _heatmap_start_date(end_date, months)
+    habit_statement = select(Habit).where(Habit.user_id == user_id)
+    if habit_ids is None:
+        habit_statement = habit_statement.where(Habit.status == HabitStatus.ACTIVE)
+    else:
+        habit_statement = habit_statement.where(Habit.id.in_(habit_ids))
+    habit_statement = habit_statement.order_by(Habit.created_at, Habit.id)
+    habits = list(db.scalars(habit_statement))
+
+    if habit_ids is not None:
+        if len(habits) != len(habit_ids):
+            raise HabitNotFoundError
+        if any(habit.status != HabitStatus.ACTIVE for habit in habits):
+            raise InvalidHeatmapFilterError
+
+    selected_ids = [habit.id for habit in habits]
+    completed_by_date: dict[date, int] = {}
+    if selected_ids:
+        created_dates = {habit.id: habit.created_at.date() for habit in habits}
+        check_in_statement = (
+            select(HabitCheckIn.habit_id, HabitCheckIn.check_in_date)
+            .join(Habit, Habit.id == HabitCheckIn.habit_id)
+            .where(
+                Habit.user_id == user_id,
+                HabitCheckIn.habit_id.in_(selected_ids),
+                HabitCheckIn.check_in_date >= start_date,
+                HabitCheckIn.check_in_date <= end_date,
+            )
+        )
+        for habit_id, check_in_date in db.execute(check_in_statement):
+            if created_dates[habit_id] <= check_in_date:
+                completed_by_date[check_in_date] = completed_by_date.get(check_in_date, 0) + 1
+
+    days = []
+    current_date = start_date
+    while current_date <= end_date:
+        eligible_count = sum(habit.created_at.date() <= current_date for habit in habits)
+        completed_count = completed_by_date.get(current_date, 0)
+        percentage = round(completed_count / eligible_count * 100) if eligible_count else None
+        days.append(
+            HeatmapDayRead(
+                date=current_date,
+                completed_count=completed_count,
+                eligible_count=eligible_count,
+                percentage=percentage,
+            ),
+        )
+        current_date += timedelta(days=1)
+
+    return ProgressHeatmapRead(
+        start_date=start_date,
+        end_date=end_date,
+        months=months,
+        habits=[HeatmapHabitRead.model_validate(habit) for habit in habits],
+        days=days,
+    )
+
+
+def _heatmap_start_date(end_date: date, months: int) -> date:
+    """Return the first date included by a heatmap period."""
+    month_index = end_date.year * 12 + end_date.month - months
+    return date(month_index // 12, month_index % 12 + 1, 1)
 
 
 def _build_habit_summary(

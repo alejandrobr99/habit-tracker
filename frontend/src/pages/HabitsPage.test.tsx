@@ -25,6 +25,30 @@ function response(body: unknown): Response {
   });
 }
 
+function heatmapResponse(): Response {
+  return response({
+    start_date: "2026-08-01",
+    end_date: "2026-08-12",
+    months: 1,
+    habits: [
+      {
+        id: habit.id,
+        name: habit.name,
+        frequency: habit.frequency,
+        color: habit.color,
+      },
+    ],
+    days: [
+      {
+        date: "2026-08-08",
+        completed_count: 0,
+        eligible_count: 1,
+        percentage: 0,
+      },
+    ],
+  });
+}
+
 describe("HabitsPage", () => {
   it("loads a habit and sends its daily check-in", async () => {
     let checked = false;
@@ -53,6 +77,9 @@ describe("HabitsPage", () => {
             },
           ],
         });
+      }
+      if (url.includes("progress-heatmap")) {
+        return heatmapResponse();
       }
       if (url.endsWith("/habits")) {
         return response([habit]);
@@ -112,7 +139,7 @@ describe("HabitsPage", () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        `http://localhost:8000/api/v1/habits/${habit.id}/streak-recoveries`,
+        `http://127.0.0.1:8000/api/v1/habits/${habit.id}/streak-recoveries`,
         expect.objectContaining({
           method: "POST",
           body: expect.stringMatching(
@@ -154,6 +181,9 @@ describe("HabitsPage", () => {
             },
           ],
         });
+      }
+      if (url.includes("progress-heatmap")) {
+        return heatmapResponse();
       }
       return response([habit]);
     });

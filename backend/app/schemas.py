@@ -106,6 +106,36 @@ class WeeklySummaryRead(BaseModel):
     habits: list[HabitWeeklySummary]
 
 
+class HeatmapHabitRead(BaseModel):
+    """Habit metadata used by progress heatmap filters."""
+
+    id: int
+    name: str
+    frequency: HabitFrequency
+    color: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class HeatmapDayRead(BaseModel):
+    """Aggregated progress for one calendar date."""
+
+    date: date_type
+    completed_count: int
+    eligible_count: int
+    percentage: int | None
+
+
+class ProgressHeatmapRead(BaseModel):
+    """Progress heatmap over one or three calendar months."""
+
+    start_date: date_type
+    end_date: date_type
+    months: Literal[1, 3]
+    habits: list[HeatmapHabitRead]
+    days: list[HeatmapDayRead]
+
+
 class HealthRead(BaseModel):
     """Application health status."""
 

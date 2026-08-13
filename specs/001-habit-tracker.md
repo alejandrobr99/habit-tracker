@@ -12,11 +12,13 @@ evitar un motor de recurrencias prematuro.
 - Distinguir hábitos para construir una conducta (`build`) y para evitarla (`avoid`).
 - Consultar la semana visible y una racha comprensible.
 - Mostrar en Hoy las acciones activas y su progreso.
+- Consultar uno o tres meses de registros mediante un calendario de intensidad filtrable por
+  hábitos activos.
 
 ## No objetivos
 
 - Días personalizados, horarios, cantidades, notas por registro u omisiones.
-- Reordenamiento, recordatorios, historial mensual o actualización optimista.
+- Reordenamiento, recordatorios, edición desde el calendario histórico o actualización optimista.
 - Recomendaciones y correcciones masivas.
 - Registrar recaídas, motivos, contenido sensible o compartir actividad.
 
@@ -63,6 +65,14 @@ Archivar conserva los registros.
 - La racha semanal cuenta semanas consecutivas con al menos un cumplimiento.
 - La meta visible es siete para frecuencia diaria y uno para frecuencia semanal.
 - La semana comienza el lunes y `week_start` debe ser lunes.
+- El porcentaje diario del calendario es
+  `check-ins de hábitos elegibles / hábitos elegibles * 100`, redondeado al entero más cercano.
+- Un hábito es elegible desde la fecha civil de su creación. Sin hábitos elegibles, el porcentaje
+  es `null`, no cero.
+- El calendario muestra el check-in real en su fecha tanto para hábitos diarios como semanales. No
+  infiere cumplimiento en otras fechas y una recuperación de racha no cuenta como check-in.
+- El rango termina hoy y comienza el primer día del mes actual para un mes, o el primer día de hace
+  dos meses para tres meses. No incluye fechas futuras.
 
 ## API
 
@@ -77,6 +87,10 @@ Archivar conserva los registros.
 - `DELETE /api/v1/habits/{habit_id}/check-ins/{date}`: elimina cumplimiento.
 - `GET /api/v1/habits/weekly-summary?week_start={monday}`: devuelve hábitos, fechas,
   cumplimiento, meta y racha.
+- `GET /api/v1/habits/progress-heatmap?months={1|3}&habit_ids={id}`: devuelve el rango, los
+  hábitos incluidos y una celda diaria con `completed_count`, `eligible_count` y `percentage`.
+  `habit_ids` es repetible; si se omite usa todos los hábitos activos. Un identificador ajeno o
+  inexistente responde `404`; un periodo o filtro inválido responde `422`.
 
 ## Estados de interfaz
 
@@ -85,6 +99,12 @@ Archivar conserva los registros.
 - **Error:** mensaje local y acción para reintentar.
 - **Guardando:** deshabilitar solo los controles que puedan duplicar la mutación.
 - **Listo:** semana, acciones, progreso y racha visibles.
+- **Calendario:** uno o tres meses alineados por semanas, con porcentaje y conteo accesibles por
+  fecha además de intensidad de color.
+- **Filtro:** todos los hábitos activos aparecen seleccionados inicialmente; cada control permite
+  incluir o excluir un hábito sin modificar registros.
+- **Sin selección:** conserva los filtros y solicita elegir al menos un hábito.
+- **Sin actividad:** mantiene el calendario y usa “Sin registros en este periodo”.
 - **Archivado:** confirmación antes de retirar el hábito de las vistas activas.
 - **Recuperado:** una fecha reparada se distingue con texto neutral y sin simular un check-in
   ordinario. Mientras el resumen semanal no exponga fechas recuperadas, la distinción aparece en
@@ -102,6 +122,10 @@ Archivar conserva los registros.
   recaídas.
 - La racha visible usa “días” para frecuencia `daily` y “semanas” para frecuencia `weekly`.
 - La API no expone hábitos ni check-ins fuera de la cuenta autenticada y no incorpora telemetría.
+- El calendario acepta uno o tres meses, filtra múltiples hábitos y calcula cada porcentaje solo
+  con hábitos de la cuenta autenticada.
+- Sus celdas distinguen `sin datos`, `0 %`, progreso parcial y `100 %` con texto accesible además de
+  color; las fechas futuras no se presentan como pendientes.
 - Hoy y Hábitos representan carga, vacío, error y contenido.
 - Crear, editar, archivar y marcar son operables con teclado.
 
@@ -120,3 +144,7 @@ Archivar conserva los registros.
   significado del historial.
 - **D-001-09:** no representar visualmente una recuperación como check-in mientras el resumen
   semanal no exponga su fecha; la recuperación solo restaura continuidad.
+- **D-001-10:** añadir en Hábitos un calendario histórico de uno o tres meses, de solo lectura,
+  agregado por fecha y filtrable por hábitos activos.
+- **D-001-11:** calcular el porcentaje diario sobre hábitos creados hasta esa fecha, contar hábitos
+  semanales solo en la fecha registrada y excluir recuperaciones de racha.

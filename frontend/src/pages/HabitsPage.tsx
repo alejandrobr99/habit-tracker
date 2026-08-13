@@ -18,6 +18,7 @@ import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { StatusPanel } from "../components/ui/StatusPanel";
 import { StreakSpectacle } from "../components/ui/StreakSpectacle";
 import { HabitDialog } from "../features/habits/HabitDialog";
+import { ProgressHeatmap } from "../features/habits/ProgressHeatmap";
 import { ApiError, plannerApi } from "../lib/api";
 import {
   selectCheckInSpectacle,
@@ -81,6 +82,7 @@ export function HabitsPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["habits"] }),
         queryClient.invalidateQueries({ queryKey: ["weekly-summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["progress-heatmap"] }),
       ]);
     },
   });
@@ -91,6 +93,7 @@ export function HabitsPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["habits"] }),
         queryClient.invalidateQueries({ queryKey: ["weekly-summary"] }),
+        queryClient.invalidateQueries({ queryKey: ["progress-heatmap"] }),
       ]);
     },
   });
@@ -118,6 +121,7 @@ export function HabitsPage() {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["weekly-summary"] }),
           queryClient.invalidateQueries({ queryKey: ["progress"] }),
+          queryClient.invalidateQueries({ queryKey: ["progress-heatmap"] }),
         ]);
         return;
       }
@@ -134,6 +138,7 @@ export function HabitsPage() {
           refetchType: "none",
         }),
         queryClient.invalidateQueries({ queryKey: ["progress"] }),
+        queryClient.invalidateQueries({ queryKey: ["progress-heatmap"] }),
       ]);
       const updated = await queryClient.fetchQuery({
         queryKey: ["weekly-summary", weekKey],
@@ -309,6 +314,8 @@ export function HabitsPage() {
           </button>
         </div>
       </section>
+
+      {habits.length > 0 && <ProgressHeatmap habits={habits} />}
 
       <aside className="recovery-balance">
         <strong>Recuperación de racha</strong>

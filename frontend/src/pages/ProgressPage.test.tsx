@@ -67,7 +67,7 @@ describe("ProgressPage", () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        "http://localhost:8000/api/v1/gamification/weekly-challenges",
+        "http://127.0.0.1:8000/api/v1/gamification/weekly-challenges",
         expect.objectContaining({
           method: "POST",
           body: expect.stringContaining('"target_count":3'),

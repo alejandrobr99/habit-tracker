@@ -36,7 +36,7 @@ describe("plannerApi", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/habits",
+      "http://127.0.0.1:8000/api/v1/habits",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -78,5 +78,60 @@ describe("plannerApi", () => {
     await expect(
       plannerApi.removeCheckIn(1, "2026-08-08"),
     ).resolves.toBeUndefined();
+  });
+
+  it("encodes repeated habit filters in the progress heatmap request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          start_date: "2026-06-01",
+          end_date: "2026-08-12",
+          months: 3,
+          habits: [],
+          days: [],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await plannerApi.getProgressHeatmap(3, [7, 12]);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8000/api/v1/habits/progress-heatmap?months=3&habit_ids=7&habit_ids=12",
+      expect.objectContaining({
+        credentials: "include",
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it("omits habit filters when all habits are selected", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          start_date: "2026-08-01",
+          end_date: "2026-08-12",
+          months: 1,
+          habits: [],
+          days: [],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await plannerApi.getProgressHeatmap(1);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8000/api/v1/habits/progress-heatmap?months=1",
+      expect.any(Object),
+    );
   });
 });

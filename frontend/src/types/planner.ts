@@ -64,6 +64,28 @@ export interface WeeklySummary {
   habits: HabitWeeklySummary[];
 }
 
+export interface HeatmapHabit {
+  id: number;
+  name: string;
+  frequency: HabitFrequency;
+  color: string;
+}
+
+export interface HeatmapDay {
+  date: string;
+  completed_count: number;
+  eligible_count: number;
+  percentage: number | null;
+}
+
+export interface ProgressHeatmap {
+  start_date: string;
+  end_date: string;
+  months: 1 | 3;
+  habits: HeatmapHabit[];
+  days: HeatmapDay[];
+}
+
 export interface FinanceSettings {
   id: number;
   base_currency: string;

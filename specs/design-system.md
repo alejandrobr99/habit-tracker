@@ -117,6 +117,19 @@ La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 - Evitado: marca, texto explícito y `success`; confirma la intención sin registrar recaídas.
 - La animación de cambio usa `motion-state` y respeta `prefers-reduced-motion`.
 
+### Calendario de progreso
+
+- Organiza cada mes en semanas que comienzan el lunes y conserva encabezados visibles de mes y día.
+- Usa cinco intensidades derivadas de la paleta existente: `surface` para `0 %`, `accent-soft`
+  para `1–49 %`, una mezcla media para `50–74 %`, una mezcla intensa para `75–99 %` y `accent`
+  para `100 %`.
+- `Sin datos`, porcentaje y conteo se expresan en el nombre accesible de cada celda; el color nunca
+  es el único indicador.
+- Los filtros son controles con `aria-pressed`, nombre del hábito y muestra de su color. Mantienen
+  al menos 48 px de alto aunque las celdas del calendario sean compactas y de solo lectura.
+- En móvil, los meses se apilan verticalmente; no se reduce texto ni celdas hasta volverlos
+  ilegibles y no se introduce desplazamiento horizontal en la página.
+
 ### Datos financieros
 
 - El código o símbolo de moneda acompaña al valor según locale.
@@ -231,3 +244,6 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
   en `003-gamification.md`, con cierre, retirada automática y alternativa estática.
 - **D-DS-15:** priorizar en Hoy un bloque compacto de nivel, XP, racha y pendientes, usando orden y
   escala para orientar la acción sin temporizadores ni señales destructivas.
+- **D-DS-16:** representar el porcentaje diario del calendario con una escala sobria de cinco
+  intensidades que reserva un verde cercano al completo para `75–99 %`, acompañada siempre por
+  texto.
