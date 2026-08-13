@@ -4,12 +4,13 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import AliasChoices, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 MIN_REQUEST_BYTES = 1024
 MAX_REQUEST_BYTES = 1_048_576
 MAX_TRUSTED_PROXY_HOPS = 4
+OCR_BUDGET_MICROUSD = 10_000_000
 
 
 class Settings(BaseSettings):
@@ -38,6 +39,17 @@ class Settings(BaseSettings):
         default=65_536,
         ge=MIN_REQUEST_BYTES,
         le=MAX_REQUEST_BYTES,
+    )
+    gemini_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("GEMINI_API_KEY", "PLANNER_GEMINI_API_KEY"),
+    )
+    ocr_enabled: bool = False
+    ocr_budget_microusd: int = Field(default=OCR_BUDGET_MICROUSD, ge=0)
+    ocr_max_request_bytes: int = Field(
+        default=10 * 1024 * 1024,
+        ge=MIN_REQUEST_BYTES,
+        le=50 * 1024 * 1024,
     )
 
     model_config = SettingsConfigDict(

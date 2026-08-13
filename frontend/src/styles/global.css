@@ -1191,6 +1191,108 @@ textarea:focus-visible {
   font-weight: 500;
 }
 
+.finance-import {
+  margin-top: 32px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.finance-import .section-heading {
+  margin-bottom: 12px;
+}
+
+.finance-import-table {
+  margin-top: 20px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+}
+
+.finance-import-row {
+  display: grid;
+  grid-template-columns: 140px minmax(180px, 1.5fr) minmax(150px, 1fr) minmax(180px, 1fr) 52px;
+  gap: 8px;
+  align-items: start;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.finance-import-row:first-child {
+  border-top: 0;
+}
+
+.finance-import-row--header {
+  color: var(--ink-soft);
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.finance-import-row input,
+.finance-import-row select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.finance-import-row input[aria-invalid="true"],
+.finance-import-row select[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.finance-import-new-category {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.finance-import-new-category input {
+  min-height: 40px;
+}
+
+.finance-category-report {
+  margin-top: 32px;
+}
+
+.finance-category-report__list {
+  display: grid;
+  gap: 12px;
+}
+
+.finance-category-report__row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) auto minmax(120px, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding-block: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.finance-category-report__row strong,
+.finance-category-report__row small {
+  display: block;
+}
+
+.finance-category-report__row small {
+  color: var(--ink-faint);
+}
+
+.finance-category-report__row span {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.finance-category-report__row progress {
+  width: 100%;
+  accent-color: var(--sage);
+}
+
 .planner-section {
   margin-top: 48px;
 }
@@ -1478,6 +1580,50 @@ progress {
   .budget-row input {
     grid-column: 1 / -1;
     grid-row: 2;
+  }
+
+  .finance-import {
+    padding: 16px;
+  }
+
+  .finance-import-row--header {
+    display: none;
+  }
+
+  .finance-import-row {
+    grid-template-columns: 1fr;
+  }
+
+  .finance-import-row label::before {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--ink-soft);
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .finance-import-row label:nth-child(1)::before {
+    content: "Fecha";
+  }
+
+  .finance-import-row label:nth-child(2)::before {
+    content: "Descripción";
+  }
+
+  .finance-import-row label:nth-child(3)::before {
+    content: "Valor de transacción";
+  }
+
+  .finance-import-row label:nth-child(4)::before {
+    content: "Categoría";
+  }
+
+  .finance-category-report__row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .finance-category-report__row progress {
+    grid-column: 1 / -1;
   }
 
   .budget-row .button {
@@ -3849,9 +3995,15 @@ h3 {
 }
 
 .heatmap-day {
+  --heatmap-progress: 0%;
   height: 3.15rem;
   padding: 0.25rem 0.1rem;
   border: 1px solid var(--border);
+  background: color-mix(
+    in srgb,
+    var(--sage) var(--heatmap-progress),
+    var(--surface)
+  );
   border-radius: 0.25rem;
   font-size: 0.78rem;
   line-height: 1.1;
@@ -3871,37 +4023,18 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.heatmap-day--empty {
+  background: transparent;
+  border-color: transparent;
+}
+
+.heatmap-day[data-dark-background="true"] {
+  border-color: var(--sage);
+  color: var(--surface);
+}
+
 .heatmap-day--none {
   background: var(--surface-muted);
-}
-
-.heatmap-day--zero {
-  background: var(--surface);
-}
-
-.heatmap-day--low {
-  background: var(--sage-soft);
-}
-
-.heatmap-day--medium {
-  background: color-mix(in srgb, var(--sage) 50%, var(--surface));
-}
-
-.heatmap-day--high {
-  border-color: color-mix(in srgb, var(--sage) 88%, var(--surface));
-  background: color-mix(in srgb, var(--sage) 84%, var(--surface));
-  color: var(--surface);
-}
-
-.heatmap-day--complete {
-  border-color: var(--sage);
-  background: var(--sage);
-  color: var(--surface);
-}
-
-.heatmap-day--empty {
-  border-color: transparent;
-  background: transparent;
 }
 
 .heatmap-legend {
@@ -3925,6 +4058,18 @@ h3 {
   flex: 0 0 auto;
   border: 1px solid var(--border);
   border-radius: 0.2rem;
+}
+
+.heatmap-legend__swatch.heatmap-day--complete {
+  background: var(--sage);
+}
+
+.heatmap-legend__swatch.heatmap-day--zero {
+  background: var(--surface);
+}
+
+.heatmap-legend__swatch.heatmap-day--gradient {
+  background: linear-gradient(to right, var(--surface), var(--sage));
 }
 
 @media (max-width: 1100px) {

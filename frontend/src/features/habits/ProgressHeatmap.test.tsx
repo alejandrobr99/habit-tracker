@@ -104,14 +104,14 @@ describe("ProgressHeatmap", () => {
       screen.getByRole("cell", {
         name: /5 de agosto de 2026: 3 de 3 hábitos, 100 %/i,
       }),
-    ).toHaveClass("heatmap-day--complete");
+    ).toHaveAttribute("style", "--heatmap-progress: 100%;");
     expect(
       screen.getByRole("cell", {
         name: /6 de agosto de 2026: 3 de 4 hábitos, 75 %/i,
       }),
-    ).toHaveClass("heatmap-day--high");
+    ).toHaveAttribute("style", "--heatmap-progress: 75%;");
     expect(screen.getByLabelText("Leyenda del calendario")).toHaveTextContent(
-      "Sin datos0 %1–49 %50–74 %75–99 %100 %",
+      "Sin datos0 %Progreso gradual100 %",
     );
   });
 

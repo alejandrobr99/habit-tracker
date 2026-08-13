@@ -10,6 +10,8 @@ import type {
   Habit,
   HabitInput,
   MonthlySummary,
+  OcrBudget,
+  OcrPreview,
   PlannerUser,
   Progress,
   ProgressHeatmap,
@@ -55,7 +57,7 @@ async function request<T>(
     credentials: "include",
     signal: options?.signal ?? AbortSignal.timeout(API_TIMEOUT_MS),
     headers: {
-      "Content-Type": "application/json",
+      ...(options?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...options?.headers,
     },
   });
@@ -254,6 +256,24 @@ export const plannerApi = {
     request<MonthlySummary>(
       `/finance/summary?month=${encodeURIComponent(month)}`,
     ),
+  previewFinanceImport: (file: File): Promise<OcrPreview> => {
+    const body = new FormData();
+    body.append("file", file);
+    return request<OcrPreview>("/finance/imports/preview", {
+      method: "POST",
+      body,
+    });
+  },
+  confirmFinanceImport: (
+    token: string,
+    rows: TransactionInput[],
+  ): Promise<{ imported_count: number; transactions: FinanceTransaction[] }> =>
+    request(`/finance/imports/${encodeURIComponent(token)}/confirm`, {
+      method: "POST",
+      body: JSON.stringify({ rows }),
+    }),
+  getFinanceImportBudget: (): Promise<OcrBudget> =>
+    request<OcrBudget>("/finance/imports/budget"),
   getProgress: (): Promise<Progress> =>
     request<Progress>("/gamification/progress"),
   listBadges: (): Promise<Badge[]> =>

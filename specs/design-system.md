@@ -120,9 +120,8 @@ La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 ### Calendario de progreso
 
 - Organiza cada mes en semanas que comienzan el lunes y conserva encabezados visibles de mes y día.
-- Usa cinco intensidades derivadas de la paleta existente: `surface` para `0 %`, `accent-soft`
-  para `1–49 %`, una mezcla media para `50–74 %`, una mezcla intensa para `75–99 %` y `accent`
-  para `100 %`.
+- Usa un gradiente continuo derivado de la paleta existente: `surface` para `0 %` y `accent` para
+  `100 %`; los porcentajes intermedios interpolan ambos tonos sin colores ad hoc.
 - `Sin datos`, porcentaje y conteo se expresan en el nombre accesible de cada celda; el color nunca
   es el único indicador.
 - Los filtros son controles con `aria-pressed`, nombre del hábito y muestra de su color. Mantienen
@@ -135,6 +134,11 @@ La unidad base es 4 px. Escala: 4, 8, 12, 16, 24, 32, 48 y 64 px.
 - El código o símbolo de moneda acompaña al valor según locale.
 - Valores negativos incluyen signo y texto contextual.
 - Las cifras de demostración llevan una etiqueta persistente, no solo un aviso temporal.
+- La importación documental muestra antes del análisis que el archivo se enviará a un proveedor
+  externo; sus propuestas se revisan en una tabla de cuatro campos editables y nunca se confía solo
+  en el color o en la confianza del OCR.
+- En móvil, la tabla se convierte en bloques apilados con etiquetas visibles y conserva la misma
+  secuencia: fecha, descripción, valor de transacción y categoría.
 
 ### Gamificación
 
@@ -244,6 +248,5 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
   en `003-gamification.md`, con cierre, retirada automática y alternativa estática.
 - **D-DS-15:** priorizar en Hoy un bloque compacto de nivel, XP, racha y pendientes, usando orden y
   escala para orientar la acción sin temporizadores ni señales destructivas.
-- **D-DS-16:** representar el porcentaje diario del calendario con una escala sobria de cinco
-  intensidades que reserva un verde cercano al completo para `75–99 %`, acompañada siempre por
-  texto.
+- **D-DS-16:** representar el porcentaje diario del calendario con un gradiente continuo entre
+  `surface` y `accent`, acompañado siempre por texto y estados accesibles.

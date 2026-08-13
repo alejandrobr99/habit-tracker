@@ -86,6 +86,12 @@ class FinanceType(StrEnum):
     EXPENSE = "expense"
 
 
+class OcrImportStatus(StrEnum):
+    """Lifecycle states for confirmed OCR imports."""
+
+    CONFIRMED = "confirmed"
+
+
 class ResourceStatus(StrEnum):
     """Lifecycle states shared by finance categories and rewards."""
 
@@ -350,6 +356,49 @@ class FinanceTransaction(Base):
     description: Mapped[str] = mapped_column(String(120))
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        UTCDateTime(),
+        default=utc_now,
+        onupdate=utc_now,
+    )
+
+
+class OcrImport(Base):
+    """Metadata for a confirmed document import without financial content."""
+
+    __tablename__ = "finance_ocr_imports"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "document_hash",
+            name="uq_finance_ocr_imports_user_hash",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    document_hash: Mapped[str] = mapped_column(String(64))
+    model: Mapped[str] = mapped_column(String(80))
+    input_tokens: Mapped[int] = mapped_column(Integer)
+    output_tokens: Mapped[int] = mapped_column(Integer)
+    cost_microusd: Mapped[int] = mapped_column(Integer)
+    status: Mapped[OcrImportStatus] = mapped_column(
+        SqlEnum(OcrImportStatus, native_enum=False, values_callable=enum_values),
+        default=OcrImportStatus.CONFIRMED,
+    )
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+
+
+class OcrBudget(Base):
+    """Per-user OCR cost ledger."""
+
+    __tablename__ = "finance_ocr_budgets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
+    budget_microusd: Mapped[int] = mapped_column(Integer)
+    reserved_microusd: Mapped[int] = mapped_column(Integer, default=0)
+    spent_microusd: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(
         UTCDateTime(),
         default=utc_now,

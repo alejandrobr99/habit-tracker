@@ -115,6 +115,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     application.add_middleware(
         RequestSizeLimitMiddleware,
         max_bytes=settings.max_request_bytes,
+        ocr_max_bytes=settings.ocr_max_request_bytes,
     )
     application.add_middleware(
         TrustedHostMiddleware,

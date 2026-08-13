@@ -25,6 +25,7 @@ Las especificaciones vigentes son:
 - `specs/004-deployment.md`: Railpack y despliegue privado.
 - `specs/005-multi-user-auth.md`: cuentas, sesiones y aislamiento por persona.
 - `specs/006-security-hardening.md`: controles de seguridad y contrato para OCR y modelos.
+- `specs/007-finance-document-import.md`: importación financiera con Gemini y confirmación humana.
 - `specs/design-system.md`: lenguaje visual, componentes y accesibilidad.
 - `specs/development-readiness.md`: controles mínimos y decisiones diferidas.
 
@@ -62,6 +63,9 @@ make stop
 
 `make stop` termina únicamente los procesos que escuchan en los puertos configurados. El frontend
 también admite `VITE_API_BASE_URL` y `VITE_API_TIMEOUT_MS`; consulta `frontend/environment.example`.
+
+La configuración del OCR con Gemini, sus límites de coste y el procedimiento para revocar la clave
+están en [`docs/gemini-ocr-setup.md`](docs/gemini-ocr-setup.md).
 
 Para validar cambios:
 

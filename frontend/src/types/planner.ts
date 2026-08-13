@@ -160,6 +160,33 @@ export interface MonthlySummary {
   categories: SummaryCategory[];
 }
 
+export interface OcrProposedTransaction {
+  row_id: string;
+  type: FinanceType;
+  amount_minor: number | null;
+  date: string | null;
+  description: string | null;
+  category_id: number | null;
+  category_name: string | null;
+  confidence: "high" | "medium" | "low";
+  field_errors: Record<string, string>;
+}
+
+export interface OcrPreview {
+  import_token: string;
+  model: string;
+  rows: OcrProposedTransaction[];
+  warnings: string[];
+  reserved_cost_microusd: number;
+}
+
+export interface OcrBudget {
+  budget_microusd: number;
+  reserved_microusd: number;
+  spent_microusd: number;
+  remaining_microusd: number;
+}
+
 export interface Progress {
   lifetime_xp: number;
   available_xp: number;

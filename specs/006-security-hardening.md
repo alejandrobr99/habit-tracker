@@ -203,10 +203,10 @@ Los contratos existentes no cambian de forma ni de nombre. Se añaden estas resp
 - **Petición demasiado grande:** mensaje cercano al contenido que indica reducir el tamaño.
 - Ningún estado nuevo revela existencia de cuentas, estado de otras personas ni detalle interno.
 
-## Módulo futuro de OCR y modelo de lenguaje
+## Módulo de OCR y modelo de lenguaje
 
-Este apartado fija el contrato mínimo que la especificación de ese módulo deberá cumplir. No habilita
-nada todavía.
+Este apartado fija el contrato mínimo compartido. El primer incremento implementable se especifica
+en `specs/007-finance-document-import.md`.
 
 ### Recepción del archivo
 

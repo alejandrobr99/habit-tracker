@@ -26,7 +26,9 @@ juicios sobre montos o decisiones de consumo.
 - Sincronización bancaria, importación de archivos o movimientos recurrentes.
 - Monedas múltiples, conversión, tasas de cambio o cambio de moneda con datos existentes.
 - Deudas, inversiones, impuestos, patrimonio, proyecciones o asesoría financiera.
-- Adjuntos, comercios, etiquetas, división de movimientos o reglas automáticas.
+- Adjuntos permanentes, comercios, etiquetas, división de movimientos o reglas automáticas. La
+  importación temporal de documentos y su confirmación humana se especifica en
+  `specs/007-finance-document-import.md`.
 - Compartir datos, telemetría financiera o gamificación basada en montos o cantidad de movimientos.
 
 ## Convenciones
@@ -263,3 +265,5 @@ moneda base responde `409`; un mes inválido responde `422`.
   definida en la especificación de gamificación.
 - **D-004-12:** recuperar el presupuesto persistido cuando un `PUT` pierde una inserción concurrente
   y aplicar sobre él el límite solicitado.
+- **D-004-13:** mantener la importación documental como propuesta temporal, con confirmación batch
+  humana y sin alterar las reglas de movimientos manuales.

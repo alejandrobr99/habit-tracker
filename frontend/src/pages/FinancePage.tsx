@@ -11,6 +11,7 @@ import {
 import { Button } from "../components/ui/Button";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { StatusPanel } from "../components/ui/StatusPanel";
+import { FinanceImportPanel } from "../features/finance/FinanceImportPanel";
 import { ApiError, plannerApi } from "../lib/api";
 import { toDateKey } from "../lib/date";
 import type {
@@ -191,6 +192,9 @@ export function FinancePage() {
   const transactions = transactionsQuery.data ?? [];
   const budgets = budgetsQuery.data ?? [];
   const summary = summaryQuery.data;
+  const highestExpense = summary?.categories
+    .filter((category) => category.type === "expense" && category.actual_minor > 0)
+    .sort((left, right) => right.actual_minor - left.actual_minor)[0];
   const { base_currency: currency, minor_unit: minorUnit } = settingsQuery.data;
   const currencyLocked = currencyConflict
     || transactions.length > 0
@@ -251,12 +255,52 @@ export function FinancePage() {
         />
       ) : (
         <>
+          <FinanceImportPanel
+            categories={categories}
+            minorUnit={minorUnit}
+            onConfirmed={refreshFinance}
+            onCreateCategory={(input) => categoryMutation.mutateAsync({ input }) as Promise<FinanceCategory>}
+          />
           {summary && (
             <section aria-label="Resumen mensual" className="finance-metrics">
-              <Metric label="Balance" value={formatMoney(summary.balance_minor, currency, minorUnit)} />
-              <Metric label="Ingresos" value={formatMoney(summary.income_minor, currency, minorUnit)} />
               <Metric label="Gastos" value={formatMoney(summary.expense_minor, currency, minorUnit)} />
+              <Metric label="Balance" value={formatMoney(summary.balance_minor, currency, minorUnit)} />
+              <Metric
+                label="Mayor gasto"
+                value={highestExpense?.category_name ?? "Sin gastos"}
+              />
               <Metric label="Presupuesto restante" value={formatMoney(summary.budget_remaining_minor, currency, minorUnit)} />
+            </section>
+          )}
+          {summary && (
+            <section className="planner-section finance-category-report" aria-label="Gastos por categoría">
+              <div className="section-heading">
+                <div><span className="eyebrow">Lectura neutral</span><h2>Gastos por categoría</h2></div>
+              </div>
+              {summary.categories.filter((category) => category.type === "expense").length === 0 ? (
+                <p className="empty-copy">Aún no hay gastos categorizados este mes.</p>
+              ) : (
+                <div className="finance-category-report__list">
+                  {summary.categories
+                    .filter((category) => category.type === "expense")
+                    .sort((left, right) => right.actual_minor - left.actual_minor)
+                    .map((category) => {
+                      const percentage = summary.expense_minor
+                        ? Math.round((category.actual_minor / summary.expense_minor) * 100)
+                        : 0;
+                      return (
+                        <div className="finance-category-report__row" key={category.category_id}>
+                          <div>
+                            <strong>{category.category_name}</strong>
+                            <small>{percentage} % del gasto mensual</small>
+                          </div>
+                          <span>{formatMoney(category.actual_minor, currency, minorUnit)}</span>
+                          <progress max="100" value={percentage} aria-label={`${category.category_name}: ${percentage} %`} />
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </section>
           )}
 

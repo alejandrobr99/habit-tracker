@@ -254,10 +254,16 @@ class RequestSizeLimitMiddleware:
     counted as they arrive so a caller cannot understate or omit the length.
     """
 
-    def __init__(self, app: Any, max_bytes: int) -> None:  # noqa: ANN401 - ASGI application
+    def __init__(
+        self,
+        app: Any,  # noqa: ANN401 - ASGI application
+        max_bytes: int,
+        ocr_max_bytes: int = 0,
+    ) -> None:  # noqa: ANN401 - ASGI application
         """Wrap an ASGI application with a body size budget."""
         self.app = app
         self.max_bytes = max_bytes
+        self.ocr_max_bytes = ocr_max_bytes
 
     async def __call__(
         self,
@@ -269,10 +275,11 @@ class RequestSizeLimitMiddleware:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        if self._declares_oversized_body(scope):
-            await self._reject(scope, send)
+        max_bytes = self._max_bytes_for_path(scope.get("path", ""))
+        if self._declares_oversized_body(scope, max_bytes):
+            await self._reject(scope, send, max_bytes)
             return
-        budget = _BodyBudget(receive, send, self.max_bytes)
+        budget = _BodyBudget(receive, send, max_bytes)
         try:
             await self.app(scope, budget.receive, budget.send)
         except Exception:
@@ -281,15 +288,25 @@ class RequestSizeLimitMiddleware:
             if not budget.exceeded:
                 raise
         if budget.exceeded:
-            await self._reject(scope, send)
+            await self._reject(scope, send, max_bytes)
 
-    def _declares_oversized_body(self, scope: MutableMapping[str, Any]) -> bool:
+    def _max_bytes_for_path(self, path: str) -> int:
+        """Return the request budget for the normal API or OCR upload."""
+        if self.ocr_max_bytes and path.endswith("/finance/imports/preview"):
+            return self.ocr_max_bytes
+        return self.max_bytes
+
+    def _declares_oversized_body(
+        self,
+        scope: MutableMapping[str, Any],
+        max_bytes: int,
+    ) -> bool:
         """Return whether the declared content length exceeds the maximum."""
         for name, value in scope.get("headers", []):
             if name != b"content-length":
                 continue
             try:
-                return int(value) > self.max_bytes
+                return int(value) > max_bytes
             except ValueError:
                 return True
         return False
@@ -298,13 +315,14 @@ class RequestSizeLimitMiddleware:
         self,
         scope: MutableMapping[str, Any],
         send: Callable[[MutableMapping[str, Any]], Awaitable[None]],
+        max_bytes: int,
     ) -> None:
         """Answer with a generic 413 and record the event."""
         log_security_event(
             "request_too_large",
             method=scope.get("method"),
             path=scope.get("path"),
-            limit=self.max_bytes,
+            limit=max_bytes,
         )
         body = f'{{"detail":"{TOO_LARGE_DETAIL}"}}'.encode()
         await send(

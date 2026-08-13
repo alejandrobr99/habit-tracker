@@ -2,11 +2,12 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.auth import ReadyUser
+from app.config import Settings, get_settings
 from app.database import get_db
 from app.models import ResourceStatus
 from app.schemas import (
@@ -19,15 +20,21 @@ from app.schemas import (
     FinanceSettingsWrite,
     Month,
     MonthlySummaryRead,
+    OcrBudgetRead,
+    OcrConfirmRead,
+    OcrConfirmRequest,
+    OcrPreviewRead,
     TransactionCreate,
     TransactionRead,
     TransactionUpdate,
 )
 from app.services import finance as finance_service
+from app.services import finance_import as finance_import_service
 from app.services import gamification as gamification_service
 
 router = APIRouter(prefix="/finance", tags=["finance"])
 DatabaseSession = Annotated[Session, Depends(get_db)]
+RuntimeSettings = Annotated[Settings, Depends(get_settings)]
 
 
 @router.get("/settings", response_model=FinanceSettingsRead)
@@ -278,6 +285,73 @@ def get_summary(
         return finance_service.build_summary(db, user.id, month)
     except finance_service.FinanceConflictError as error:
         raise _conflict("Finance settings are required") from error
+
+
+@router.post("/imports/preview", response_model=OcrPreviewRead)
+async def preview_import(
+    db: DatabaseSession,
+    user: ReadyUser,
+    settings: RuntimeSettings,
+    file: Annotated[UploadFile, File()],
+) -> OcrPreviewRead:
+    """Analyze one financial document without persisting its content."""
+    try:
+        content = await file.read()
+        return finance_import_service.preview_document(
+            db,
+            user.id,
+            content,
+            file.filename or "",
+            settings,
+        )
+    except finance_import_service.OcrUnavailableError as error:
+        raise HTTPException(503, "La importación OCR no está disponible.") from error
+    except finance_import_service.OcrBudgetError as error:
+        raise _conflict("El presupuesto o el límite de análisis no está disponible.") from error
+    except finance_import_service.OcrDocumentError as error:
+        raise HTTPException(
+            422,
+            "El documento no es válido o supera los límites permitidos.",
+        ) from error
+    except finance_import_service.OcrPreviewError as error:
+        raise HTTPException(502, "No pudimos analizar el documento.") from error
+
+
+@router.post("/imports/{import_token}/confirm", response_model=OcrConfirmRead)
+def confirm_import(
+    import_token: str,
+    payload: OcrConfirmRequest,
+    db: DatabaseSession,
+    user: ReadyUser,
+) -> OcrConfirmRead:
+    """Persist edited OCR rows atomically after human confirmation."""
+    try:
+        transactions, _ = finance_import_service.confirm_preview(
+            db,
+            user.id,
+            import_token,
+            payload,
+        )
+    except finance_service.FinanceNotFoundError as error:
+        raise _not_found("Importación no encontrada o expirada") from error
+    except finance_service.FinanceConflictError as error:
+        raise _conflict(
+            "La importación ya fue confirmada o contiene una categoría inválida",
+        ) from error
+    return OcrConfirmRead(
+        imported_count=len(transactions),
+        transactions=[TransactionRead.model_validate(item) for item in transactions],
+    )
+
+
+@router.get("/imports/budget", response_model=OcrBudgetRead)
+def get_import_budget(
+    db: DatabaseSession,
+    user: ReadyUser,
+    settings: RuntimeSettings,
+) -> OcrBudgetRead:
+    """Return the current OCR budget without revealing document data."""
+    return finance_import_service.get_budget(db, user.id, settings.ocr_budget_microusd)
 
 
 def _not_found(detail: str) -> HTTPException:

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { Button } from "../../components/ui/Button";
 import { plannerApi } from "../../lib/api";
@@ -18,23 +18,13 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("es-ES", {
   year: "numeric",
 });
 
-function getLevel(day: HeatmapDay): string {
+function getDayStyle(day: HeatmapDay): CSSProperties | undefined {
   if (day.percentage === null) {
-    return "none";
+    return undefined;
   }
-  if (day.percentage === 0) {
-    return "zero";
-  }
-  if (day.percentage < 50) {
-    return "low";
-  }
-  if (day.percentage < 75) {
-    return "medium";
-  }
-  if (day.percentage < 100) {
-    return "high";
-  }
-  return "complete";
+  return {
+    "--heatmap-progress": `${day.percentage}%`,
+  } as CSSProperties;
 }
 
 function getAccessibleDayLabel(day: HeatmapDay): string {
@@ -218,8 +208,12 @@ export function ProgressHeatmap({ habits }: ProgressHeatmapProps) {
                           day ? (
                             <td
                               aria-label={getAccessibleDayLabel(day)}
-                              className={`heatmap-day heatmap-day--${getLevel(day)}`}
+                              className="heatmap-day"
+                              data-dark-background={
+                                day.percentage !== null && day.percentage >= 60
+                              }
                               key={day.date}
+                              style={getDayStyle(day)}
                             >
                               <span>{parseDateKey(day.date).getDate()}</span>
                               <strong>
@@ -247,9 +241,7 @@ export function ProgressHeatmap({ habits }: ProgressHeatmapProps) {
             {[
               ["none", "Sin datos"],
               ["zero", "0 %"],
-              ["low", "1–49 %"],
-              ["medium", "50–74 %"],
-              ["high", "75–99 %"],
+              ["gradient", "Progreso gradual"],
               ["complete", "100 %"],
             ].map(([level, label]) => (
               <span key={level}>

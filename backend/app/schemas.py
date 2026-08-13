@@ -314,6 +314,54 @@ class MonthlySummaryRead(BaseModel):
     categories: list[SummaryCategoryRead]
 
 
+class OcrProposedTransactionRead(BaseModel):
+    """One editable transaction proposed from a financial document."""
+
+    row_id: str
+    type: FinanceType
+    amount_minor: int | None
+    date: date_type | None
+    description: str | None
+    category_id: int | None
+    category_name: str | None
+    confidence: Literal["high", "medium", "low"]
+    field_errors: dict[str, str] = Field(default_factory=dict)
+
+
+class OcrPreviewRead(BaseModel):
+    """Temporary OCR result awaiting human confirmation."""
+
+    import_token: str
+    model: str
+    rows: list[OcrProposedTransactionRead]
+    warnings: list[str]
+    reserved_cost_microusd: int
+
+
+class OcrConfirmRequest(BaseModel):
+    """Edited rows submitted for explicit OCR confirmation."""
+
+    rows: list[TransactionCreate] = Field(min_length=1, max_length=100)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class OcrConfirmRead(BaseModel):
+    """Result of an atomic OCR confirmation."""
+
+    imported_count: int
+    transactions: list[TransactionRead]
+
+
+class OcrBudgetRead(BaseModel):
+    """Non-sensitive OCR budget status."""
+
+    budget_microusd: int
+    reserved_microusd: int
+    spent_microusd: int
+    remaining_microusd: int
+
+
 class XpEntryRead(BaseModel):
     """XP ledger entry returned by the API."""
 
