@@ -341,7 +341,7 @@ class OcrPreviewRead(BaseModel):
 class OcrConfirmRequest(BaseModel):
     """Edited rows submitted for explicit OCR confirmation."""
 
-    rows: list[TransactionCreate] = Field(min_length=1, max_length=100)
+    rows: list[TransactionCreate] = Field(min_length=1, max_length=200)
 
     model_config = ConfigDict(extra="forbid")
 

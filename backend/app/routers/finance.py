@@ -313,6 +313,11 @@ async def preview_import(
             422,
             "El documento no es válido o supera los límites permitidos.",
         ) from error
+    except finance_import_service.OcrRowLimitError as error:
+        raise HTTPException(
+            422,
+            "El documento contiene más de 200 movimientos. Divídelo en archivos más pequeños.",
+        ) from error
     except finance_import_service.OcrPreviewError as error:
         raise HTTPException(502, "No pudimos analizar el documento.") from error
 

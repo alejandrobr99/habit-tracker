@@ -34,6 +34,7 @@ const API_TIMEOUT_MS =
   Number.isFinite(configuredTimeout) && configuredTimeout > 0
     ? configuredTimeout
     : 10_000;
+const OCR_PREVIEW_TIMEOUT_MS = 60_000;
 
 export class ApiError extends Error {
   readonly status: number;
@@ -262,6 +263,7 @@ export const plannerApi = {
     return request<OcrPreview>("/finance/imports/preview", {
       method: "POST",
       body,
+      signal: AbortSignal.timeout(OCR_PREVIEW_TIMEOUT_MS),
     });
   },
   confirmFinanceImport: (

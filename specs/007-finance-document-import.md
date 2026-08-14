@@ -48,7 +48,7 @@ documento original en un adjunto permanente ni crear movimientos automáticament
 | Tamaño recibido | 10 MiB |
 | Páginas PDF | 10 |
 | Dimensiones rasterizadas | 20 megapíxeles por página |
-| Filas propuestas | 100 |
+| Filas propuestas | 200 |
 | Análisis por cuenta | 5 por hora |
 | Análisis concurrentes | 1 por cuenta y 2 por instancia |
 | Tiempo de proveedor | 45 segundos |
@@ -102,7 +102,8 @@ Todas las rutas usan `/api/v1`, sesión activa y mensajes de error genéricos.
   enviar contenido. La respuesta incluye `import_token`, filas, advertencias, modelo y coste reservado.
 - `POST /finance/imports/{import_token}/confirm` recibe exactamente las filas editadas y devuelve
   `OcrConfirmRead` con los movimientos creados. Revalida usuario, categorías, importes, fechas,
-  descripciones y reserva. Una fila inválida produce `422` y ninguna fila se guarda.
+  descripciones y reserva. Una fila inválida produce `422` y ninguna fila se guarda. El máximo es
+  200 filas por importación.
 - `GET /finance/imports/budget` devuelve presupuesto usado, reservado y restante sin contenido de
   documentos.
 

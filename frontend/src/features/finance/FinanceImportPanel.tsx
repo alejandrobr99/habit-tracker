@@ -57,7 +57,7 @@ export function FinanceImportPanel({
       } else if (error instanceof ApiError && error.status === 503) {
         setStatus("El servicio OCR está temporalmente no disponible. Inténtalo de nuevo.");
       } else if (error instanceof ApiError && error.status === 422) {
-        setStatus("El archivo debe ser una imagen JPEG/PNG o un PDF válido dentro de los límites.");
+        setStatus(error.message);
       } else {
         setStatus("No pudimos interpretar la respuesta del OCR. Inténtalo de nuevo.");
       }
