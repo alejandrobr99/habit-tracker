@@ -274,6 +274,7 @@ def _normalize_document(content: bytes, filename: str) -> tuple[bytes, str]:
 def _call_gemini(api_key: str, content: bytes, mime_type: str) -> Any:  # noqa: ANN401
     """Call Gemini with no tools, retrieval, caching, or external URLs."""
     client = genai.Client(
+        vertexai=False,
         api_key=api_key,
         http_options=types.HttpOptions(
             timeout=PROVIDER_TIMEOUT_MS,
