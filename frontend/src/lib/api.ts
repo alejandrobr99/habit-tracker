@@ -88,6 +88,24 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
+async function requestBlob(path: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    credentials: "include",
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
+  });
+  if (!response.ok) {
+    let message = "No pudimos completar la solicitud.";
+    try {
+      const body = (await response.json()) as { detail?: string };
+      message = body.detail ?? message;
+    } catch {
+      // The fallback message is used when the API does not return JSON.
+    }
+    throw new ApiError(message, response.status);
+  }
+  return response.blob();
+}
+
 export const plannerApi = {
   login: (username: string, password: string): Promise<PlannerUser> =>
     request<PlannerUser>("/auth/login", {
@@ -216,6 +234,17 @@ export const plannerApi = {
   listTransactions: (month: string): Promise<FinanceTransaction[]> =>
     request<FinanceTransaction[]>(
       `/finance/transactions?month=${encodeURIComponent(month)}`,
+    ),
+  listTransactionsRange: (
+    startMonth: string,
+    endMonth: string,
+  ): Promise<FinanceTransaction[]> =>
+    request<FinanceTransaction[]>(
+      `/finance/transactions/range?start_month=${encodeURIComponent(startMonth)}&end_month=${encodeURIComponent(endMonth)}`,
+    ),
+  exportTransactions: (months: string[]): Promise<Blob> =>
+    requestBlob(
+      `/finance/transactions/export-selected?${months.map((month) => `months=${encodeURIComponent(month)}`).join("&")}`,
     ),
   createTransaction: (input: TransactionInput): Promise<FinanceTransaction> =>
     request<FinanceTransaction>("/finance/transactions", {

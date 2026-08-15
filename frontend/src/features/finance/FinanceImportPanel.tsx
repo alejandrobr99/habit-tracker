@@ -156,7 +156,7 @@ export function FinanceImportPanel({
           </label>
         )}
       </div>
-      <p className="field-help">
+      <p className="field-help finance-import__instructions">
         Se envía una copia temporal a Google Gemini. Usa JPEG, PNG o PDF de hasta 10 MiB. Revisa cada
         fila: el OCR nunca guarda movimientos automáticamente.
       </p>

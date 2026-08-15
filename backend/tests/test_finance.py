@@ -1,7 +1,10 @@
 """API tests for personal finance."""
 
+from io import BytesIO
+
 from fastapi import status
 from fastapi.testclient import TestClient
+from openpyxl import load_workbook
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -196,6 +199,64 @@ def test_transaction_budget_and_summary_flow(client: TestClient):
         ).status_code
         == status.HTTP_404_NOT_FOUND
     )
+
+
+def test_transaction_range_and_excel_export(client: TestClient):
+    """Return and export a bounded range in descending date order."""
+    _, expense_id = configure_finance(client)
+    for date_value, description in (
+        ("2026-03-01", "March expense"),
+        ("2026-08-02", "August expense"),
+        ("2026-09-01", "Outside range"),
+    ):
+        response = client.post(
+            "/api/v1/finance/transactions",
+            json={
+                "type": "expense",
+                "amount_minor": 100_00,
+                "category_id": expense_id,
+                "date": date_value,
+                "description": description,
+                "note": "private note",
+            },
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+    listed = client.get(
+        "/api/v1/finance/transactions",
+        params={"month": "2026-08"},
+    )
+    assert [item["description"] for item in listed.json()] == ["August expense"]
+
+    ranged = client.get(
+        "/api/v1/finance/transactions/range",
+        params={"start_month": "2026-03", "end_month": "2026-08"},
+    )
+    assert ranged.status_code == status.HTTP_200_OK
+    assert [item["description"] for item in ranged.json()] == [
+        "August expense",
+        "March expense",
+    ]
+
+    exported = client.get(
+        "/api/v1/finance/transactions/export",
+        params={"start_month": "2026-03", "end_month": "2026-08"},
+    )
+    assert exported.status_code == status.HTTP_200_OK
+    assert (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        in exported.headers["content-type"]
+    )
+    workbook = load_workbook(BytesIO(exported.content), read_only=True)
+    rows = list(workbook.active.values)
+    assert rows[0] == ("Fecha", "Tipo", "Descripción", "Categoría", "Valor", "Moneda")
+    assert rows[1][0] == "2026-08-02"
+    assert "private note" not in str(rows)
+    selected_export = client.get(
+        "/api/v1/finance/transactions/export-selected",
+        params=[("months", "2026-03"), ("months", "2026-08")],
+    )
+    assert selected_export.status_code == status.HTTP_200_OK
 
 
 def test_finance_validation_and_missing_settings(client: TestClient):

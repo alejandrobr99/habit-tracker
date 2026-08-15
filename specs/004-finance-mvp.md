@@ -166,6 +166,10 @@ Cambiar `type` con movimientos o presupuestos asociados responde `409`. Nombre d
 
 - `GET /finance/transactions?month={YYYY-MM}` lista el mes por `date` descendente y luego `id`
   descendente.
+- `GET /finance/transactions/range?start_month={YYYY-MM}&end_month={YYYY-MM}` lista el rango
+  inclusivo por `date` descendente y luego `id` descendente.
+- `GET /finance/transactions/export-selected?months={YYYY-MM}&months={YYYY-MM}` descarga los meses
+  seleccionados en `.xlsx`, sin notas.
 - `POST /finance/transactions` acepta `type`, `amount_minor`, `category_id`, `date`,
   `description` y `note`; devuelve `201`.
 - `GET /finance/transactions/{transaction_id}` devuelve un movimiento.
@@ -223,8 +227,16 @@ moneda base responde `409`; un mes inválido responde `422`.
   defecto en un panel desplegable accesible.
 - **Control financiero:** el resumen prioriza total gastado, balance, presupuesto restante y
   distribución porcentual por categoría, con comparación de hasta seis meses.
-- **Filtro de periodo:** el selector de mes vive dentro del control financiero y actualiza sus
-  indicadores y comparación como una sola interacción.
+- **Filtro de periodo:** botones persistentes de enero al mes actual permiten seleccionar varios
+  meses independientes; un segundo clic deselecciona el mes y el control actualiza sus indicadores,
+  comparación y lista como una sola interacción.
+- **Movimientos del periodo:** después del resumen aparece una lista scrolleable, ordenada por fecha
+  descendente, que muestra todos los movimientos de los meses seleccionados sin crecer
+  indefinidamente.
+- **Exportación:** la lista puede descargarse como un archivo Excel `.xlsx` con los mismos meses
+  seleccionados y orden, sin incluir notas privadas.
+- **Presentación monetaria:** los importes visibles en dashboard, lista y exportación se redondean a
+  unidades enteras; la precisión entera persistida en unidades menores no cambia.
 - **Gestión financiera:** categorías y presupuestos se editan en una sola sección; cada categoría
   permite modificar su nombre, archivarse y, si es de gasto, configurar su límite.
 - **Moneda secundaria:** la moneda base se muestra como una nota discreta; la multimoneda queda
@@ -260,6 +272,15 @@ moneda base responde `409`; un mes inválido responde `422`.
 - La captura documental y manual puede abrirse con teclado sin ocultar sus nombres o propósito.
 - El control financiero muestra el total del periodo, porcentajes por categoría y comparación mensual
   sin inventar datos para meses vacíos.
+- Los botones mensuales son operables con teclado, identifican el mes seleccionado y no permiten
+  seleccionar meses futuros del año actual.
+- Todos los botones YTD permanecen visibles; el segundo clic alterna la selección y por defecto se
+  seleccionan los tres últimos meses disponibles.
+- La lista limita visualmente su altura, mantiene el orden descendente y conserva edición y
+  eliminación de los movimientos.
+- La exportación descarga un `.xlsx` del rango seleccionado y muestra un estado recuperable si falla.
+- Los importes mostrados se redondean a enteros de forma consistente, incluidos valores negativos,
+  sin modificar los importes persistidos.
 - Los datos financieros no aparecen en telemetría, logs de cuerpos ni respuestas ajenas al usuario.
 
 ## Decisiones registradas
@@ -282,3 +303,8 @@ moneda base responde `409`; un mes inválido responde `422`.
   humana y sin alterar las reglas de movimientos manuales.
 - **D-004-14:** priorizar el control financiero visible y mantener la captura secundaria plegada por
   defecto; comparar seis meses mediante resúmenes mensuales ya persistidos.
+- **D-004-15:** reemplazar el calendario por botones YTD del año actual y mantenerlos visibles.
+- **D-004-16:** generar la exportación Excel en el backend para mantener el mismo contrato de rango,
+  aislamiento por usuario y representación monetaria que la consulta financiera.
+- **D-004-17:** usar selección múltiple independiente de meses, con los tres últimos meses
+  disponibles seleccionados por defecto; los agregados se derivan solo de esa selección.

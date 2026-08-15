@@ -2,7 +2,7 @@
 
 from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -160,13 +160,51 @@ def archive_category(db: Session, user_id: int, category_id: int) -> None:
 
 def list_transactions(db: Session, user_id: int, month: str) -> list[FinanceTransaction]:
     """List transactions for one civil month."""
-    start, end = month_bounds(month)
+    return list_transactions_range(db, user_id, month, month)
+
+
+def list_transactions_range(
+    db: Session,
+    user_id: int,
+    start_month: str,
+    end_month: str,
+) -> list[FinanceTransaction]:
+    """List transactions between two inclusive civil months."""
+    start, _ = month_bounds(start_month)
+    _, end = month_bounds(end_month)
+    if start > end:
+        raise ValueError
     statement = (
         select(FinanceTransaction)
         .where(
             FinanceTransaction.user_id == user_id,
             FinanceTransaction.date >= start,
             FinanceTransaction.date < end,
+        )
+        .order_by(FinanceTransaction.date.desc(), FinanceTransaction.id.desc())
+    )
+    return list(db.scalars(statement))
+
+
+def list_transactions_months(
+    db: Session,
+    user_id: int,
+    months: list[str],
+) -> list[FinanceTransaction]:
+    """List transactions from selected civil months in descending order."""
+    if not months:
+        return []
+    conditions = []
+    for month in sorted(set(months)):
+        start, end = month_bounds(month)
+        conditions.append(
+            (FinanceTransaction.date >= start) & (FinanceTransaction.date < end),
+        )
+    statement = (
+        select(FinanceTransaction)
+        .where(
+            FinanceTransaction.user_id == user_id,
+            or_(*conditions),
         )
         .order_by(FinanceTransaction.date.desc(), FinanceTransaction.id.desc())
     )

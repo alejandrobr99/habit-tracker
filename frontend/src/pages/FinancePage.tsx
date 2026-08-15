@@ -30,12 +30,11 @@ function currentMonth(): string {
   return toDateKey(new Date()).slice(0, 7);
 }
 
-function monthRange(anchor: string, count: number): string[] {
-  const [year, month] = anchor.split("-").map(Number);
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(year, month - 1 - index, 1);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-  });
+function yearMonths(anchor: string): string[] {
+  const [year, currentMonthNumber] = anchor.split("-").map(Number);
+  return Array.from({ length: currentMonthNumber }, (_, index) =>
+    `${year}-${String(index + 1).padStart(2, "0")}`,
+  );
 }
 
 function parseMoney(value: string, minorUnit: number): number | null {
@@ -56,19 +55,27 @@ function parseMoney(value: string, minorUnit: number): number | null {
 }
 
 function formatMoney(amount: number, currency: string, minorUnit: number): string {
+  const divisor = 10n ** BigInt(minorUnit);
+  const minorAmount = BigInt(amount);
+  const sign = minorAmount < 0n ? -1n : 1n;
+  const absoluteAmount = minorAmount < 0n ? -minorAmount : minorAmount;
+  const roundedUnits = ((absoluteAmount + divisor / 2n) / divisor) * sign;
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency,
-    minimumFractionDigits: minorUnit,
-    maximumFractionDigits: minorUnit,
-  }).format(amount / 10 ** minorUnit);
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Number(roundedUnits));
 }
 
 export function FinancePage() {
-  const [month, setMonth] = useState(currentMonth);
+  const availableMonths = yearMonths(currentMonth());
+  const [selectedMonths, setSelectedMonths] = useState(() => availableMonths.slice(-3));
   const [captureMode, setCaptureMode] = useState<CaptureMode>("manual");
   const [currencyConflict, setCurrencyConflict] = useState(false);
   const [currencyFeedback, setCurrencyFeedback] = useState("");
+  const [exportPending, setExportPending] = useState(false);
+  const [exportError, setExportError] = useState("");
   const queryClient = useQueryClient();
   const settingsQuery = useQuery({
     queryKey: ["finance-settings"],
@@ -81,28 +88,25 @@ export function FinancePage() {
     queryFn: () => plannerApi.listCategories(),
     enabled: hasSettings,
   });
-  const transactionsQuery = useQuery({
-    queryKey: ["finance-transactions", month],
-    queryFn: () => plannerApi.listTransactions(month),
-    enabled: hasSettings,
+  const transactionQueries = useQueries({
+    queries: selectedMonths.map((selectedMonth) => ({
+      queryKey: ["finance-transactions", selectedMonth],
+      queryFn: () => plannerApi.listTransactions(selectedMonth),
+      enabled: hasSettings,
+    })),
   });
-  const budgetsQuery = useQuery({
-    queryKey: ["finance-budgets", month],
-    queryFn: () => plannerApi.listBudgets(month),
-    enabled: hasSettings,
-  });
-  const summaryMonths = monthRange(month, 6);
-  const summaryQuery = useQuery({
-    queryKey: ["finance-summary", month],
-    queryFn: () => plannerApi.getMonthlySummary(month),
-    enabled: hasSettings,
-  });
-  const historicalSummaryQueries = useQueries({
-    queries: summaryMonths.slice(1).map((summaryMonth) => ({
+  const summaryQueries = useQueries({
+    queries: availableMonths.map((summaryMonth) => ({
       queryKey: ["finance-summary", summaryMonth],
       queryFn: () => plannerApi.getMonthlySummary(summaryMonth),
       enabled: hasSettings,
     })),
+  });
+  const budgetMonth = selectedMonths[selectedMonths.length - 1] ?? availableMonths[availableMonths.length - 1];
+  const budgetsQuery = useQuery({
+    queryKey: ["finance-budgets", budgetMonth],
+    queryFn: () => plannerApi.listBudgets(budgetMonth),
+    enabled: hasSettings,
   });
 
   async function refreshFinance() {
@@ -111,6 +115,24 @@ export function FinancePage() {
       queryClient.invalidateQueries({ queryKey: ["finance-budgets"] }),
       queryClient.invalidateQueries({ queryKey: ["finance-summary"] }),
     ]);
+  }
+
+  async function downloadTransactions() {
+    setExportPending(true);
+    setExportError("");
+    try {
+      const file = await plannerApi.exportTransactions(selectedMonths);
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `movimientos-${selectedMonths.join("-")}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError("No se pudo descargar el Excel. Inténtalo nuevamente.");
+    } finally {
+      setExportPending(false);
+    }
   }
 
   const settingsMutation = useMutation({
@@ -162,11 +184,11 @@ export function FinancePage() {
     }: {
       categoryId: number;
       limitMinor: number;
-    }) => plannerApi.putBudget(month, categoryId, limitMinor),
+    }) => plannerApi.putBudget(budgetMonth, categoryId, limitMinor),
     onSuccess: refreshFinance,
   });
   const deleteBudgetMutation = useMutation({
-    mutationFn: (categoryId: number) => plannerApi.deleteBudget(month, categoryId),
+    mutationFn: (categoryId: number) => plannerApi.deleteBudget(budgetMonth, categoryId),
     onSuccess: refreshFinance,
   });
 
@@ -200,21 +222,20 @@ export function FinancePage() {
   }
 
   const isLoading = categoriesQuery.isLoading
-    || transactionsQuery.isLoading
+    || transactionQueries.some((query) => query.isLoading)
     || budgetsQuery.isLoading
-    || summaryQuery.isLoading;
+    || summaryQueries.some((query) => query.isLoading);
   const hasError = categoriesQuery.isError
-    || transactionsQuery.isError
+    || transactionQueries.some((query) => query.isError)
     || budgetsQuery.isError
-    || summaryQuery.isError;
+    || summaryQueries.some((query) => query.isError);
   const categories = categoriesQuery.data ?? [];
-  const transactions = transactionsQuery.data ?? [];
+  const transactions = transactionQueries
+    .flatMap((query) => query.data ?? [])
+    .sort((left, right) => right.date.localeCompare(left.date) || right.id - left.id);
   const budgets = budgetsQuery.data ?? [];
-  const summary = summaryQuery.data;
-  const monthlySummaries = [
-    ...(summary ? [summary] : []),
-    ...historicalSummaryQueries.flatMap((query) => (query.data ? [query.data] : [])),
-  ];
+  const allSummaries = summaryQueries.flatMap((query) => (query.data ? [query.data] : []));
+  const monthlySummaries = allSummaries.filter((summary) => selectedMonths.includes(summary.month));
   const { base_currency: currency, minor_unit: minorUnit } = settingsQuery.data;
   const currencyLocked = currencyConflict
     || transactions.length > 0
@@ -234,11 +255,7 @@ export function FinancePage() {
             onConfirmed={refreshFinance}
             onCreateCategory={(input) => categoryMutation.mutateAsync({ input }) as Promise<FinanceCategory>}
             onSaveTransaction={(input) => transactionMutation.mutateAsync({ input })}
-            onSaveExistingTransaction={(id, input) => transactionMutation.mutateAsync({ id, input })}
-            onDeleteTransaction={(id) => deleteTransactionMutation.mutate(id)}
             pending={transactionMutation.isPending}
-            transactions={transactions}
-            currency={currency}
           />
           {categories.length === 0 && (
             <div className="finance-header-controls">
@@ -277,25 +294,41 @@ export function FinancePage() {
         />
       ) : (
         <>
-          {summary && (
-            <FinanceDashboard
-              currency={currency}
-              minorUnit={minorUnit}
-              month={month}
-              onMonthChange={setMonth}
-              summaries={monthlySummaries}
-              currencyControl={
-                <CurrencyControl
-                  currency={currency}
-                  error={settingsMutation.isError && !currencyConflict}
-                  feedback={currencyFeedback}
-                  locked={currencyLocked}
-                  pending={settingsMutation.isPending}
-                  onSave={(nextCurrency) => settingsMutation.mutateAsync(nextCurrency)}
-                />
-              }
-            />
-          )}
+          <FinanceDashboard
+            availableMonths={availableMonths}
+            currency={currency}
+            currencyControl={
+              <CurrencyControl
+                currency={currency}
+                error={settingsMutation.isError && !currencyConflict}
+                feedback={currencyFeedback}
+                locked={currencyLocked}
+                pending={settingsMutation.isPending}
+                onSave={(nextCurrency) => settingsMutation.mutateAsync(nextCurrency)}
+              />
+            }
+            minorUnit={minorUnit}
+            onMonthToggle={(selectedMonth) => {
+              setSelectedMonths((current) =>
+                current.includes(selectedMonth)
+                  ? current.filter((item) => item !== selectedMonth)
+                  : [...current, selectedMonth].sort(),
+              );
+            }}
+            selectedMonths={selectedMonths}
+            summaries={monthlySummaries}
+          />
+          <FinanceLedger
+            currency={currency}
+            error={exportError}
+            minorUnit={minorUnit}
+            onDelete={(id) => deleteTransactionMutation.mutate(id)}
+            onDownload={() => void downloadTransactions()}
+            onSave={(id, input) => transactionMutation.mutateAsync({ id, input })}
+            pending={exportPending}
+            transactions={transactions}
+            categories={categories}
+          />
 
           <section className="planner-section">
             <div className="section-heading">
@@ -354,29 +387,21 @@ function FinanceFrame({ children }: { children: ReactNode }) {
 function FinanceCapture({
   categories,
   captureMode,
-  currency,
   minorUnit,
   onCaptureModeChange,
   onConfirmed,
   onCreateCategory,
-  onDeleteTransaction,
-  onSaveExistingTransaction,
   onSaveTransaction,
   pending,
-  transactions,
 }: {
   categories: FinanceCategory[];
   captureMode: CaptureMode;
-  currency: string;
   minorUnit: number;
   onCaptureModeChange: (mode: CaptureMode) => void;
   onConfirmed: () => Promise<void>;
   onCreateCategory: (input: CategoryInput) => Promise<FinanceCategory>;
-  onDeleteTransaction: (id: number) => void;
-  onSaveExistingTransaction: (id: number, input: TransactionInput) => Promise<unknown>;
   onSaveTransaction: (input: TransactionInput) => Promise<unknown>;
   pending: boolean;
-  transactions: FinanceTransaction[];
 }) {
   return (
     <details className="finance-capture">
@@ -428,27 +453,65 @@ function FinanceCapture({
                 <Button variant="secondary"><Plus aria-hidden="true" size={18} />Nuevo</Button>
               </TransactionDialog>
             </div>
-            {transactions.length === 0 ? (
-              <p className="empty-copy">Este mes aún no tiene movimientos.</p>
-            ) : (
-              <div className="data-list">
-                {transactions.map((transaction) => (
-                  <TransactionRow
-                    categories={categories}
-                    currency={currency}
-                    key={transaction.id}
-                    minorUnit={minorUnit}
-                    transaction={transaction}
-                    onDelete={() => onDeleteTransaction(transaction.id)}
-                    onSave={(input) => onSaveExistingTransaction(transaction.id, input)}
-                  />
-                ))}
-              </div>
-            )}
+            <p className="field-help">Puedes revisar y editar los movimientos desde el resumen del periodo.</p>
           </section>
         )}
       </div>
     </details>
+  );
+}
+
+function FinanceLedger({
+  categories,
+  currency,
+  error,
+  minorUnit,
+  onDelete,
+  onDownload,
+  onSave,
+  pending,
+  transactions,
+}: {
+  categories: FinanceCategory[];
+  currency: string;
+  error: string;
+  minorUnit: number;
+  onDelete: (id: number) => void;
+  onDownload: () => void;
+  onSave: (id: number, input: TransactionInput) => Promise<unknown>;
+  pending: boolean;
+  transactions: FinanceTransaction[];
+}) {
+  return (
+    <section className="planner-section finance-ledger" aria-label="Movimientos del periodo">
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">Movimientos del periodo</span>
+          <h2>Todos los movimientos</h2>
+        </div>
+        <Button disabled={pending || transactions.length === 0} onClick={onDownload} variant="secondary">
+          Descargar Excel
+        </Button>
+      </div>
+      {error && <p className="inline-error" role="alert">{error}</p>}
+      {transactions.length === 0 ? (
+        <p className="empty-copy">No hay movimientos en los seis meses seleccionados.</p>
+      ) : (
+        <div className="finance-ledger__list">
+          {transactions.map((transaction) => (
+            <TransactionRow
+              categories={categories}
+              currency={currency}
+              key={transaction.id}
+              minorUnit={minorUnit}
+              transaction={transaction}
+              onDelete={() => onDelete(transaction.id)}
+              onSave={(input) => onSave(transaction.id, input)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -573,23 +636,29 @@ function CurrencyControl({
 }
 
 function FinanceDashboard({
+  availableMonths,
   currency,
   currencyControl,
   minorUnit,
-  month,
-  onMonthChange,
+  onMonthToggle,
+  selectedMonths,
   summaries,
 }: {
+  availableMonths: string[];
   currency: string;
   currencyControl: ReactNode;
   minorUnit: number;
-  month: string;
-  onMonthChange: (month: string) => void;
+  onMonthToggle: (month: string) => void;
+  selectedMonths: string[];
   summaries: MonthlySummary[];
 }) {
-  const current = summaries[0];
   const periodExpense = summaries.reduce((total, item) => total + item.expense_minor, 0);
   const averageExpense = Math.round(periodExpense / Math.max(summaries.length, 1));
+  const periodBalance = summaries.reduce((total, item) => total + item.balance_minor, 0);
+  const periodBudgetRemaining = summaries.reduce(
+    (total, item) => total + item.budget_remaining_minor,
+    0,
+  );
   const categoryTotals = new Map<string, { name: string; amount: number }>();
   summaries.forEach((summary) => {
     summary.categories
@@ -606,11 +675,16 @@ function FinanceDashboard({
     .filter((category) => category.amount > 0)
     .sort((left, right) => right.amount - left.amount);
   const highestMonthlyExpense = Math.max(...summaries.map((summary) => summary.expense_minor), 0);
-  const periodLabel = summaries.length === 1 ? "Mes seleccionado" : `${summaries.length} meses`;
+  const periodLabel = selectedMonths.length === 0
+    ? "Sin meses"
+    : selectedMonths.length === 1
+      ? "1 mes"
+      : `${selectedMonths.length} meses`;
   const monthFormatter = new Intl.DateTimeFormat("es-CO", {
     month: "short",
     year: "numeric",
   });
+  const monthButtonFormatter = new Intl.DateTimeFormat("es-CO", { month: "short" });
 
   return (
     <section className="finance-dashboard" aria-label="Control financiero">
@@ -618,14 +692,24 @@ function FinanceDashboard({
         <div>
           <span className="eyebrow">Control financiero</span>
           <h2>Una lectura amplia de tus costos</h2>
-          <p>Compara el mes seleccionado con los cinco meses anteriores y reconoce dónde se concentra el gasto.</p>
+          <p>Selecciona los meses que quieres comparar y revisa cómo cambia el gasto.</p>
         </div>
         <div className="finance-dashboard__controls">
           <div className="finance-dashboard__month-control">
-            <label htmlFor="finance-month">
-              <span>Mes de referencia</span>
-              <input id="finance-month" type="month" value={month} onChange={(event) => onMonthChange(event.target.value)} />
-            </label>
+            <span className="finance-dashboard__month-label">Meses incluidos</span>
+            <div className="finance-month-picker" role="group" aria-label="Meses incluidos">
+              {availableMonths.map((monthOption) => (
+                <button
+                  aria-pressed={selectedMonths.includes(monthOption)}
+                  className={selectedMonths.includes(monthOption) ? "finance-month-picker__button finance-month-picker__button--active" : "finance-month-picker__button"}
+                  key={monthOption}
+                  onClick={() => onMonthToggle(monthOption)}
+                  type="button"
+                >
+                  {monthButtonFormatter.format(new Date(`${monthOption}-01T12:00:00`))}
+                </button>
+              ))}
+            </div>
             {currencyControl}
           </div>
           <span className="finance-dashboard__period">{periodLabel}</span>
@@ -638,19 +722,19 @@ function FinanceDashboard({
           <small>{periodLabel} · promedio {formatMoney(averageExpense, currency, minorUnit)} al mes</small>
         </article>
         <article>
-          <span>Gasto del mes</span>
-          <strong>{formatMoney(current.expense_minor, currency, minorUnit)}</strong>
-          <small>{current.month}</small>
+          <span>Promedio mensual</span>
+          <strong>{formatMoney(averageExpense, currency, minorUnit)}</strong>
+          <small>Según los meses seleccionados</small>
         </article>
         <article>
-          <span>Balance del mes</span>
-          <strong>{formatMoney(current.balance_minor, currency, minorUnit)}</strong>
+          <span>Balance del periodo</span>
+          <strong>{formatMoney(periodBalance, currency, minorUnit)}</strong>
           <small>Ingresos menos gastos</small>
         </article>
         <article>
           <span>Presupuesto restante</span>
-          <strong>{formatMoney(current.budget_remaining_minor, currency, minorUnit)}</strong>
-          <small>Límite disponible del mes</small>
+          <strong>{formatMoney(periodBudgetRemaining, currency, minorUnit)}</strong>
+          <small>Suma de los meses seleccionados</small>
         </article>
       </div>
       <div className="finance-dashboard__grid">

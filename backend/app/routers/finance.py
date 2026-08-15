@@ -1,15 +1,18 @@
 """HTTP routes for personal finance."""
 
+from decimal import ROUND_HALF_UP, Decimal
+from io import BytesIO
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from openpyxl import Workbook
 from sqlalchemy.orm import Session
 
 from app.auth import ReadyUser
 from app.config import Settings, get_settings
 from app.database import get_db
-from app.models import ResourceStatus
+from app.models import FinanceTransaction, ResourceStatus
 from app.schemas import (
     BudgetRead,
     BudgetWrite,
@@ -143,6 +146,64 @@ def get_transactions(
         TransactionRead.model_validate(item)
         for item in finance_service.list_transactions(db, user.id, month)
     ]
+
+
+@router.get("/transactions/export")
+def export_transactions(
+    start_month: Month,
+    end_month: Month,
+    db: DatabaseSession,
+    user: ReadyUser,
+) -> StreamingResponse:
+    """Download transactions in a civil-month range as an Excel workbook."""
+    try:
+        transactions = finance_service.list_transactions_range(
+            db,
+            user.id,
+            start_month,
+            end_month,
+        )
+    except ValueError as error:
+        raise _unprocessable("The start month must not be after the end month") from error
+
+    return _build_transactions_workbook(
+        db,
+        user.id,
+        transactions,
+        f"movimientos-{start_month}-a-{end_month}.xlsx",
+    )
+
+
+@router.get("/transactions/export-selected")
+def export_selected_transactions(
+    months: Annotated[list[Month], Query(min_length=1)],
+    db: DatabaseSession,
+    user: ReadyUser,
+) -> StreamingResponse:
+    """Download transactions from selected civil months as an Excel workbook."""
+    transactions = finance_service.list_transactions_months(db, user.id, months)
+    filename = f"movimientos-seleccionados-{len(set(months))}-meses.xlsx"
+    return _build_transactions_workbook(db, user.id, transactions, filename)
+
+
+@router.get("/transactions/range", response_model=list[TransactionRead])
+def get_transactions_range(
+    start_month: Month,
+    end_month: Month,
+    db: DatabaseSession,
+    user: ReadyUser,
+) -> list[TransactionRead]:
+    """List transactions across an inclusive civil-month range."""
+    try:
+        transactions = finance_service.list_transactions_range(
+            db,
+            user.id,
+            start_month,
+            end_month,
+        )
+    except ValueError as error:
+        raise _unprocessable("The start month must not be after the end month") from error
+    return [TransactionRead.model_validate(item) for item in transactions]
 
 
 @router.post("/transactions", response_model=TransactionRead, status_code=status.HTTP_201_CREATED)
@@ -359,6 +420,48 @@ def get_import_budget(
     return finance_import_service.get_budget(db, user.id, settings.ocr_budget_microusd)
 
 
+def _build_transactions_workbook(
+    db: Session,
+    user_id: int,
+    transactions: list[FinanceTransaction],
+    filename: str,
+) -> StreamingResponse:
+    """Build an Excel workbook without exporting private notes."""
+    settings = finance_service.get_settings(db, user_id)
+    categories = {
+        category.id: category.name
+        for category_status in (ResourceStatus.ACTIVE, ResourceStatus.ARCHIVED)
+        for category in finance_service.list_categories(db, user_id, category_status)
+    }
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Movimientos"
+    worksheet.append(["Fecha", "Tipo", "Descripción", "Categoría", "Valor", "Moneda"])
+    for transaction in transactions:
+        amount = Decimal(transaction.amount_minor) / (Decimal(10) ** settings.minor_unit)
+        rounded_amount = amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        worksheet.append([
+            transaction.date.isoformat(),
+            "Ingreso" if transaction.type.value == "income" else "Gasto",
+            transaction.description,
+            categories.get(transaction.category_id, "Categoría archivada"),
+            f"{rounded_amount:.0f}",
+            settings.base_currency,
+        ])
+    worksheet.freeze_panes = "A2"
+    worksheet.auto_filter.ref = worksheet.dimensions
+    for column, width in {"A": 14, "B": 12, "C": 32, "D": 24, "E": 18, "F": 10}.items():
+        worksheet.column_dimensions[column].width = width
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 def _not_found(detail: str) -> HTTPException:
     """Build a not-found response."""
     return HTTPException(status.HTTP_404_NOT_FOUND, detail)
@@ -367,3 +470,8 @@ def _not_found(detail: str) -> HTTPException:
 def _conflict(detail: str) -> HTTPException:
     """Build a conflict response."""
     return HTTPException(status.HTTP_409_CONFLICT, detail)
+
+
+def _unprocessable(detail: str) -> HTTPException:
+    """Build an unprocessable-content response."""
+    return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail)
