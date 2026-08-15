@@ -219,6 +219,16 @@ moneda base responde `409`; un mes inválido responde `422`.
 - **Sin presupuesto:** el resumen financiero sigue visible y ofrece configurar uno.
 - **Con presupuesto:** límite, gasto y restante con texto además de color.
 - **Límite superado:** muestra el restante negativo de forma neutral, sin alarma ni recomendación.
+- **Captura secundaria:** la importación documental y el registro manual permanecen ocultos por
+  defecto en un panel desplegable accesible.
+- **Control financiero:** el resumen prioriza total gastado, balance, presupuesto restante y
+  distribución porcentual por categoría, con comparación de hasta seis meses.
+- **Filtro de periodo:** el selector de mes vive dentro del control financiero y actualiza sus
+  indicadores y comparación como una sola interacción.
+- **Gestión financiera:** categorías y presupuestos se editan en una sola sección; cada categoría
+  permite modificar su nombre, archivarse y, si es de gasto, configurar su límite.
+- **Moneda secundaria:** la moneda base se muestra como una nota discreta; la multimoneda queda
+  fuera del alcance del MVP.
 - **Carga:** conserva dimensiones del encabezado, métricas y lista.
 - **Error:** mensaje local y reintento; no reemplaza otros datos ya cargados.
 - **Mes distinto:** el selector actualiza movimientos, presupuestos y resumen como una sola vista.
@@ -247,6 +257,9 @@ moneda base responde `409`; un mes inválido responde `422`.
 - Ningún monto, saldo o número de movimientos genera XP; solo el primer presupuesto configurado
   puede generar el evento financiero permitido.
 - Captura, edición, eliminación, presupuesto y cambio de mes son operables con teclado y foco visible.
+- La captura documental y manual puede abrirse con teclado sin ocultar sus nombres o propósito.
+- El control financiero muestra el total del periodo, porcentajes por categoría y comparación mensual
+  sin inventar datos para meses vacíos.
 - Los datos financieros no aparecen en telemetría, logs de cuerpos ni respuestas ajenas al usuario.
 
 ## Decisiones registradas
@@ -267,3 +280,5 @@ moneda base responde `409`; un mes inválido responde `422`.
   y aplicar sobre él el límite solicitado.
 - **D-004-13:** mantener la importación documental como propuesta temporal, con confirmación batch
   humana y sin alterar las reglas de movimientos manuales.
+- **D-004-14:** priorizar el control financiero visible y mantener la captura secundaria plegada por
+  defecto; comparar seis meses mediante resúmenes mensuales ya persistidos.

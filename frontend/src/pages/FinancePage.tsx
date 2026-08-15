@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Archive, ChevronDown, Pencil, Plus, Trash2, X } from "lucide-react";
 import {
   type FormEvent,
   type ReactNode,
@@ -19,13 +19,23 @@ import type {
   FinanceCategory,
   FinanceTransaction,
   FinanceType,
+  MonthlySummary,
   TransactionInput,
 } from "../types/planner";
 
 const categoryColors = ["#7A5C3E", "#536B57", "#315C7A", "#956F35"];
+type CaptureMode = "manual" | "automatic";
 
 function currentMonth(): string {
   return toDateKey(new Date()).slice(0, 7);
+}
+
+function monthRange(anchor: string, count: number): string[] {
+  const [year, month] = anchor.split("-").map(Number);
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(year, month - 1 - index, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  });
 }
 
 function parseMoney(value: string, minorUnit: number): number | null {
@@ -56,6 +66,7 @@ function formatMoney(amount: number, currency: string, minorUnit: number): strin
 
 export function FinancePage() {
   const [month, setMonth] = useState(currentMonth);
+  const [captureMode, setCaptureMode] = useState<CaptureMode>("manual");
   const [currencyConflict, setCurrencyConflict] = useState(false);
   const [currencyFeedback, setCurrencyFeedback] = useState("");
   const queryClient = useQueryClient();
@@ -80,10 +91,18 @@ export function FinancePage() {
     queryFn: () => plannerApi.listBudgets(month),
     enabled: hasSettings,
   });
+  const summaryMonths = monthRange(month, 6);
   const summaryQuery = useQuery({
     queryKey: ["finance-summary", month],
     queryFn: () => plannerApi.getMonthlySummary(month),
     enabled: hasSettings,
+  });
+  const historicalSummaryQueries = useQueries({
+    queries: summaryMonths.slice(1).map((summaryMonth) => ({
+      queryKey: ["finance-summary", summaryMonth],
+      queryFn: () => plannerApi.getMonthlySummary(summaryMonth),
+      enabled: hasSettings,
+    })),
   });
 
   async function refreshFinance() {
@@ -192,9 +211,10 @@ export function FinancePage() {
   const transactions = transactionsQuery.data ?? [];
   const budgets = budgetsQuery.data ?? [];
   const summary = summaryQuery.data;
-  const highestExpense = summary?.categories
-    .filter((category) => category.type === "expense" && category.actual_minor > 0)
-    .sort((left, right) => right.actual_minor - left.actual_minor)[0];
+  const monthlySummaries = [
+    ...(summary ? [summary] : []),
+    ...historicalSummaryQueries.flatMap((query) => (query.data ? [query.data] : [])),
+  ];
   const { base_currency: currency, minor_unit: minorUnit } = settingsQuery.data;
   const currencyLocked = currencyConflict
     || transactions.length > 0
@@ -202,36 +222,38 @@ export function FinancePage() {
 
   return (
     <FinanceFrame>
-      <header className="page-header">
+      <header className="page-header page-header--finance">
         <div>
           <span className="eyebrow">Panorama mensual</span>
           <h1>Finanzas</h1>
-          <p>Registra movimientos y consulta tu presupuesto sin juicios.</p>
-        </div>
-        {categories.length > 0 && (
-          <TransactionDialog
+          <FinanceCapture
             categories={categories}
+            captureMode={captureMode}
             minorUnit={minorUnit}
+            onCaptureModeChange={setCaptureMode}
+            onConfirmed={refreshFinance}
+            onCreateCategory={(input) => categoryMutation.mutateAsync({ input }) as Promise<FinanceCategory>}
+            onSaveTransaction={(input) => transactionMutation.mutateAsync({ input })}
+            onSaveExistingTransaction={(id, input) => transactionMutation.mutateAsync({ id, input })}
+            onDeleteTransaction={(id) => deleteTransactionMutation.mutate(id)}
             pending={transactionMutation.isPending}
-            onSave={(input) => transactionMutation.mutateAsync({ input })}
-          >
-            <Button><Plus aria-hidden="true" size={18} />Registrar movimiento</Button>
-          </TransactionDialog>
-        )}
+            transactions={transactions}
+            currency={currency}
+          />
+          {categories.length === 0 && (
+            <div className="finance-header-controls">
+              <CurrencyControl
+                currency={currency}
+                error={settingsMutation.isError && !currencyConflict}
+                feedback={currencyFeedback}
+                locked={currencyLocked}
+                pending={settingsMutation.isPending}
+                onSave={(nextCurrency) => settingsMutation.mutateAsync(nextCurrency)}
+              />
+            </div>
+          )}
+        </div>
       </header>
-
-      <div className="finance-toolbar">
-        <label htmlFor="finance-month">Mes</label>
-        <input id="finance-month" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
-        <CurrencyControl
-          currency={currency}
-          error={settingsMutation.isError && !currencyConflict}
-          feedback={currencyFeedback}
-          locked={currencyLocked}
-          pending={settingsMutation.isPending}
-          onSave={(nextCurrency) => settingsMutation.mutateAsync(nextCurrency)}
-        />
-      </div>
 
       {isLoading ? (
         <StatusPanel kind="loading" title="Cargando el mes" description="Calculando movimientos y presupuestos." />
@@ -255,63 +277,153 @@ export function FinancePage() {
         />
       ) : (
         <>
-          <FinanceImportPanel
-            categories={categories}
-            minorUnit={minorUnit}
-            onConfirmed={refreshFinance}
-            onCreateCategory={(input) => categoryMutation.mutateAsync({ input }) as Promise<FinanceCategory>}
-          />
           {summary && (
-            <section aria-label="Resumen mensual" className="finance-metrics">
-              <Metric label="Gastos" value={formatMoney(summary.expense_minor, currency, minorUnit)} />
-              <Metric label="Balance" value={formatMoney(summary.balance_minor, currency, minorUnit)} />
-              <Metric
-                label="Mayor gasto"
-                value={highestExpense?.category_name ?? "Sin gastos"}
-              />
-              <Metric label="Presupuesto restante" value={formatMoney(summary.budget_remaining_minor, currency, minorUnit)} />
-            </section>
-          )}
-          {summary && (
-            <section className="planner-section finance-category-report" aria-label="Gastos por categoría">
-              <div className="section-heading">
-                <div><span className="eyebrow">Lectura neutral</span><h2>Gastos por categoría</h2></div>
-              </div>
-              {summary.categories.filter((category) => category.type === "expense").length === 0 ? (
-                <p className="empty-copy">Aún no hay gastos categorizados este mes.</p>
-              ) : (
-                <div className="finance-category-report__list">
-                  {summary.categories
-                    .filter((category) => category.type === "expense")
-                    .sort((left, right) => right.actual_minor - left.actual_minor)
-                    .map((category) => {
-                      const percentage = summary.expense_minor
-                        ? Math.round((category.actual_minor / summary.expense_minor) * 100)
-                        : 0;
-                      return (
-                        <div className="finance-category-report__row" key={category.category_id}>
-                          <div>
-                            <strong>{category.category_name}</strong>
-                            <small>{percentage} % del gasto mensual</small>
-                          </div>
-                          <span>{formatMoney(category.actual_minor, currency, minorUnit)}</span>
-                          <progress max="100" value={percentage} aria-label={`${category.category_name}: ${percentage} %`} />
-                        </div>
-                      );
-                    })}
-                </div>
-              )}
-            </section>
+            <FinanceDashboard
+              currency={currency}
+              minorUnit={minorUnit}
+              month={month}
+              onMonthChange={setMonth}
+              summaries={monthlySummaries}
+              currencyControl={
+                <CurrencyControl
+                  currency={currency}
+                  error={settingsMutation.isError && !currencyConflict}
+                  feedback={currencyFeedback}
+                  locked={currencyLocked}
+                  pending={settingsMutation.isPending}
+                  onSave={(nextCurrency) => settingsMutation.mutateAsync(nextCurrency)}
+                />
+              }
+            />
           )}
 
           <section className="planner-section">
             <div className="section-heading">
-              <div><span className="eyebrow">Captura manual</span><h2>Movimientos</h2></div>
+              <div><span className="eyebrow">Organización y límites</span><h2>Categorías y presupuestos</h2></div>
+              <CategoryDialog pending={categoryMutation.isPending} onSave={(input) => categoryMutation.mutateAsync({ input })}>
+                <Button variant="secondary"><Plus aria-hidden="true" size={18} />Nueva categoría</Button>
+              </CategoryDialog>
+            </div>
+            <div className="finance-management-list">
+              {categories.map((category) => {
+                const budget = budgets.find((item) => item.category_id === category.id);
+                return (
+                  <article className="finance-management-item" key={category.id}>
+                    <div className="category-item">
+                      <span className="category-dot" style={{ backgroundColor: category.color }} />
+                      <div><strong>{category.name}</strong><small>{category.type === "income" ? "Ingreso" : "Gasto"}</small></div>
+                      <CategoryDialog category={category} pending={categoryMutation.isPending} onSave={(input) => categoryMutation.mutateAsync({ id: category.id, input })}>
+                        <button className="icon-button" aria-label={`Editar ${category.name}`}><Pencil aria-hidden="true" size={17} /></button>
+                      </CategoryDialog>
+                      <ConfirmDialog title="¿Archivar categoría?" description="Se conservarán sus movimientos y presupuestos históricos." onConfirm={() => archiveCategoryMutation.mutate(category.id)}>
+                        <button className="icon-button" aria-label={`Archivar ${category.name}`}><Archive aria-hidden="true" size={17} /></button>
+                      </ConfirmDialog>
+                    </div>
+                    {category.type === "expense" ? (
+                      <BudgetRow
+                        budgetMinor={budget?.limit_minor}
+                        category={category}
+                        currency={currency}
+                        minorUnit={minorUnit}
+                        pending={budgetMutation.isPending}
+                        onDelete={budget ? () => deleteBudgetMutation.mutate(category.id) : undefined}
+                        onSave={(limitMinor) => budgetMutation.mutateAsync({ categoryId: category.id, limitMinor })}
+                      />
+                    ) : (
+                      <small className="finance-management-item__note">Los presupuestos aplican a categorías de gasto.</small>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </>
+      )}
+
+      {(categoryMutation.isError || transactionMutation.isError || budgetMutation.isError) && (
+        <p className="inline-error" role="alert">No se pudo guardar. Revisa los datos e inténtalo nuevamente.</p>
+      )}
+    </FinanceFrame>
+  );
+}
+
+function FinanceFrame({ children }: { children: ReactNode }) {
+  return <div className="page page--wide">{children}</div>;
+}
+
+function FinanceCapture({
+  categories,
+  captureMode,
+  currency,
+  minorUnit,
+  onCaptureModeChange,
+  onConfirmed,
+  onCreateCategory,
+  onDeleteTransaction,
+  onSaveExistingTransaction,
+  onSaveTransaction,
+  pending,
+  transactions,
+}: {
+  categories: FinanceCategory[];
+  captureMode: CaptureMode;
+  currency: string;
+  minorUnit: number;
+  onCaptureModeChange: (mode: CaptureMode) => void;
+  onConfirmed: () => Promise<void>;
+  onCreateCategory: (input: CategoryInput) => Promise<FinanceCategory>;
+  onDeleteTransaction: (id: number) => void;
+  onSaveExistingTransaction: (id: number, input: TransactionInput) => Promise<unknown>;
+  onSaveTransaction: (input: TransactionInput) => Promise<unknown>;
+  pending: boolean;
+  transactions: FinanceTransaction[];
+}) {
+  return (
+    <details className="finance-capture">
+      <summary>
+        <span>
+          <strong>Registrar tus gastos e ingresos</strong>
+          <small>Elige si quieres registrar un movimiento o subir un documento.</small>
+        </span>
+        <ChevronDown aria-hidden="true" size={22} />
+      </summary>
+      <div className="finance-capture__content">
+        <div className="finance-capture__choices" role="group" aria-label="Tipo de registro">
+          <button
+            className={captureMode === "manual" ? "finance-capture__choice finance-capture__choice--active" : "finance-capture__choice"}
+            type="button"
+            aria-pressed={captureMode === "manual"}
+            onClick={() => onCaptureModeChange("manual")}
+          >
+            <strong>Manual</strong>
+            <span>Registra un movimiento individual.</span>
+          </button>
+          <button
+            className={captureMode === "automatic" ? "finance-capture__choice finance-capture__choice--active" : "finance-capture__choice"}
+            type="button"
+            aria-pressed={captureMode === "automatic"}
+            onClick={() => onCaptureModeChange("automatic")}
+          >
+            <strong>Automático</strong>
+            <span>Sube un recibo o extracto para revisarlo.</span>
+          </button>
+        </div>
+        {captureMode === "automatic" ? (
+          <FinanceImportPanel
+            categories={categories}
+            minorUnit={minorUnit}
+            onConfirmed={onConfirmed}
+            onCreateCategory={onCreateCategory}
+          />
+        ) : (
+          <section className="planner-section">
+            <div className="section-heading">
+              <div><span className="eyebrow">Registro manual</span><h2>Movimientos</h2></div>
               <TransactionDialog
                 categories={categories}
                 minorUnit={minorUnit}
-                pending={transactionMutation.isPending}
-                onSave={(input) => transactionMutation.mutateAsync({ input })}
+                pending={pending}
+                onSave={onSaveTransaction}
               >
                 <Button variant="secondary"><Plus aria-hidden="true" size={18} />Nuevo</Button>
               </TransactionDialog>
@@ -327,69 +439,17 @@ export function FinancePage() {
                     key={transaction.id}
                     minorUnit={minorUnit}
                     transaction={transaction}
-                    onDelete={() => deleteTransactionMutation.mutate(transaction.id)}
-                    onSave={(input) => transactionMutation.mutateAsync({ id: transaction.id, input })}
+                    onDelete={() => onDeleteTransaction(transaction.id)}
+                    onSave={(input) => onSaveExistingTransaction(transaction.id, input)}
                   />
                 ))}
               </div>
             )}
           </section>
-
-          <section className="planner-section">
-            <div className="section-heading"><div><span className="eyebrow">Límites elegidos</span><h2>Presupuestos</h2></div></div>
-            <div className="data-list">
-              {categories.filter((category) => category.type === "expense").map((category) => {
-                const budget = budgets.find((item) => item.category_id === category.id);
-                return (
-                  <BudgetRow
-                    budgetMinor={budget?.limit_minor}
-                    category={category}
-                    currency={currency}
-                    key={category.id}
-                    minorUnit={minorUnit}
-                    pending={budgetMutation.isPending}
-                    onDelete={budget ? () => deleteBudgetMutation.mutate(category.id) : undefined}
-                    onSave={(limitMinor) => budgetMutation.mutateAsync({ categoryId: category.id, limitMinor })}
-                  />
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="planner-section">
-            <div className="section-heading">
-              <div><span className="eyebrow">Organización</span><h2>Categorías</h2></div>
-              <CategoryDialog pending={categoryMutation.isPending} onSave={(input) => categoryMutation.mutateAsync({ input })}>
-                <Button variant="secondary"><Plus aria-hidden="true" size={18} />Nueva categoría</Button>
-              </CategoryDialog>
-            </div>
-            <div className="category-grid">
-              {categories.map((category) => (
-                <article className="category-item" key={category.id}>
-                  <span className="category-dot" style={{ backgroundColor: category.color }} />
-                  <div><strong>{category.name}</strong><small>{category.type === "income" ? "Ingreso" : "Gasto"}</small></div>
-                  <CategoryDialog category={category} pending={categoryMutation.isPending} onSave={(input) => categoryMutation.mutateAsync({ id: category.id, input })}>
-                    <button className="icon-button" aria-label={`Editar ${category.name}`}><Pencil aria-hidden="true" size={17} /></button>
-                  </CategoryDialog>
-                  <ConfirmDialog title="¿Archivar categoría?" description="Se conservarán sus movimientos y presupuestos históricos." onConfirm={() => archiveCategoryMutation.mutate(category.id)}>
-                    <button className="icon-button" aria-label={`Archivar ${category.name}`}><Archive aria-hidden="true" size={17} /></button>
-                  </ConfirmDialog>
-                </article>
-              ))}
-            </div>
-          </section>
-        </>
-      )}
-
-      {(categoryMutation.isError || transactionMutation.isError || budgetMutation.isError) && (
-        <p className="inline-error" role="alert">No se pudo guardar. Revisa los datos e inténtalo nuevamente.</p>
-      )}
-    </FinanceFrame>
+        )}
+      </div>
+    </details>
   );
-}
-
-function FinanceFrame({ children }: { children: ReactNode }) {
-  return <div className="page page--wide">{children}</div>;
 }
 
 function CurrencyOnboarding({
@@ -512,8 +572,138 @@ function CurrencyControl({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return <article className="finance-metric"><span>{label}</span><strong>{value}</strong></article>;
+function FinanceDashboard({
+  currency,
+  currencyControl,
+  minorUnit,
+  month,
+  onMonthChange,
+  summaries,
+}: {
+  currency: string;
+  currencyControl: ReactNode;
+  minorUnit: number;
+  month: string;
+  onMonthChange: (month: string) => void;
+  summaries: MonthlySummary[];
+}) {
+  const current = summaries[0];
+  const periodExpense = summaries.reduce((total, item) => total + item.expense_minor, 0);
+  const averageExpense = Math.round(periodExpense / Math.max(summaries.length, 1));
+  const categoryTotals = new Map<string, { name: string; amount: number }>();
+  summaries.forEach((summary) => {
+    summary.categories
+      .filter((category) => category.type === "expense")
+      .forEach((category) => {
+        const existing = categoryTotals.get(String(category.category_id));
+        categoryTotals.set(String(category.category_id), {
+          name: category.category_name,
+          amount: (existing?.amount ?? 0) + category.actual_minor,
+        });
+      });
+  });
+  const categories = Array.from(categoryTotals.values())
+    .filter((category) => category.amount > 0)
+    .sort((left, right) => right.amount - left.amount);
+  const highestMonthlyExpense = Math.max(...summaries.map((summary) => summary.expense_minor), 0);
+  const periodLabel = summaries.length === 1 ? "Mes seleccionado" : `${summaries.length} meses`;
+  const monthFormatter = new Intl.DateTimeFormat("es-CO", {
+    month: "short",
+    year: "numeric",
+  });
+
+  return (
+    <section className="finance-dashboard" aria-label="Control financiero">
+      <div className="finance-dashboard__heading">
+        <div>
+          <span className="eyebrow">Control financiero</span>
+          <h2>Una lectura amplia de tus costos</h2>
+          <p>Compara el mes seleccionado con los cinco meses anteriores y reconoce dónde se concentra el gasto.</p>
+        </div>
+        <div className="finance-dashboard__controls">
+          <div className="finance-dashboard__month-control">
+            <label htmlFor="finance-month">
+              <span>Mes de referencia</span>
+              <input id="finance-month" type="month" value={month} onChange={(event) => onMonthChange(event.target.value)} />
+            </label>
+            {currencyControl}
+          </div>
+          <span className="finance-dashboard__period">{periodLabel}</span>
+        </div>
+      </div>
+      <div className="finance-dashboard__metrics">
+        <article className="finance-dashboard__total">
+          <span>Total gastado</span>
+          <strong>{formatMoney(periodExpense, currency, minorUnit)}</strong>
+          <small>{periodLabel} · promedio {formatMoney(averageExpense, currency, minorUnit)} al mes</small>
+        </article>
+        <article>
+          <span>Gasto del mes</span>
+          <strong>{formatMoney(current.expense_minor, currency, minorUnit)}</strong>
+          <small>{current.month}</small>
+        </article>
+        <article>
+          <span>Balance del mes</span>
+          <strong>{formatMoney(current.balance_minor, currency, minorUnit)}</strong>
+          <small>Ingresos menos gastos</small>
+        </article>
+        <article>
+          <span>Presupuesto restante</span>
+          <strong>{formatMoney(current.budget_remaining_minor, currency, minorUnit)}</strong>
+          <small>Límite disponible del mes</small>
+        </article>
+      </div>
+      <div className="finance-dashboard__grid">
+        <section className="finance-dashboard__panel" aria-labelledby="finance-category-title">
+          <div className="section-heading">
+            <div><span className="eyebrow">Distribución</span><h3 id="finance-category-title">Categorías en el periodo</h3></div>
+          </div>
+          {categories.length === 0 ? (
+            <p className="empty-copy">Aún no hay gastos categorizados en este periodo.</p>
+          ) : (
+            <div className="finance-dashboard__categories">
+              {categories.map((category) => {
+                const percentage = periodExpense
+                  ? Math.round((category.amount / periodExpense) * 100)
+                  : 0;
+                return (
+                  <div className="finance-dashboard__category" key={category.name}>
+                    <div>
+                      <strong>{category.name}</strong>
+                      <small>{percentage} % del gasto · {formatMoney(category.amount, currency, minorUnit)}</small>
+                    </div>
+                    <progress max="100" value={percentage} aria-label={`${category.name}: ${percentage} %`} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+        <section className="finance-dashboard__panel" aria-labelledby="finance-month-title">
+          <div className="section-heading">
+            <div><span className="eyebrow">Ritmo mensual</span><h3 id="finance-month-title">Gasto por mes</h3></div>
+          </div>
+          <div className="finance-dashboard__months">
+            {summaries.map((summary, index) => {
+              const percentage = highestMonthlyExpense
+                ? Math.round((summary.expense_minor / highestMonthlyExpense) * 100)
+                : 0;
+              const date = new Date(`${summary.month}-01T12:00:00`);
+              return (
+                <div className="finance-dashboard__month" key={`${summary.month}-${index}`}>
+                  <div>
+                    <strong>{monthFormatter.format(date)}</strong>
+                    <span>{formatMoney(summary.expense_minor, currency, minorUnit)}</span>
+                  </div>
+                  <progress max="100" value={percentage} aria-label={`${summary.month}: ${formatMoney(summary.expense_minor, currency, minorUnit)}`} />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    </section>
+  );
 }
 
 function FormDialog({

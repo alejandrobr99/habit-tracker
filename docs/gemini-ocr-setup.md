@@ -1,6 +1,6 @@
 # Configuración segura del OCR financiero con Gemini
 
-Esta prueba de concepto envía temporalmente el documento financiero al backend de Google Gemini
+Esta configuración envía temporalmente el documento financiero al backend de Google Gemini
 para proponer movimientos. No es OCR local. La aplicación elimina su copia temporal al terminar,
 pero eso no significa que el proveedor la destruya inmediatamente.
 

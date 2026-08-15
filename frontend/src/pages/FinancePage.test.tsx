@@ -73,8 +73,9 @@ describe("FinancePage", () => {
     );
 
     await userEvent.click(
-      await screen.findByRole("button", { name: "Registrar movimiento" }),
+      await screen.findByText("Registrar tus gastos e ingresos"),
     );
+    await userEvent.click(await screen.findByRole("button", { name: "Nuevo" }));
     await userEvent.type(screen.getByLabelText("Importe"), "1250.50");
     await userEvent.type(screen.getByLabelText("Descripción"), "Mercado");
     await userEvent.click(screen.getByRole("button", { name: "Guardar movimiento" }));

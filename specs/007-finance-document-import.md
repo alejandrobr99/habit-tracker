@@ -2,7 +2,7 @@
 
 ## Estado
 
-Primera versión implementable como prueba de concepto. Extiende el MVP financiero sin convertir el
+Primera versión implementable. Extiende el MVP financiero sin convertir el
 documento original en un adjunto permanente ni crear movimientos automáticamente.
 
 ## Objetivos

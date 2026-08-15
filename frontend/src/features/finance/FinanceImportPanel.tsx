@@ -139,7 +139,7 @@ export function FinanceImportPanel({
     <section className="planner-section finance-import" aria-label="Importar documento financiero">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Prueba de concepto</span>
+          <span className="eyebrow">Registro automático</span>
           <h2>Importar recibo o extracto</h2>
         </div>
         {!preview && (
