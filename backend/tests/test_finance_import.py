@@ -4,6 +4,7 @@ import io
 import time
 from types import SimpleNamespace
 
+import pymupdf
 import pytest
 from google.genai import errors
 from PIL import Image
@@ -15,6 +16,7 @@ from app.services import finance_import
 
 EXPECTED_INPUT_TOKENS = 10
 EXPECTED_OUTPUT_TOKENS = 5
+EXPECTED_BATCH_COUNT = 2
 PROVIDER_UNAVAILABLE_STATUS = 503
 
 
@@ -35,6 +37,21 @@ def test_normalize_rejects_pdf_with_active_content() -> None:
         finance_import._normalize_document(b"%PDF-1.7 /JavaScript", "statement.pdf")
 
 
+def test_split_pdf_batches_all_pages_for_long_documents() -> None:
+    """Long PDFs are sent in bounded batches without dropping later pages."""
+    source = pymupdf.open()
+    for _ in range(5):
+        source.new_page()
+    content = source.tobytes()
+    source.close()
+
+    parts = finance_import._split_document(content, "application/pdf")
+
+    assert len(parts) == EXPECTED_BATCH_COUNT
+    assert all(mime_type == "application/pdf" for _, mime_type in parts)
+    assert all(pymupdf.open(stream=part, filetype="pdf").page_count > 0 for part, _ in parts)
+
+
 def test_parse_response_accepts_provider_parsed_payload(session_factory) -> None:
     """Structured SDK responses are parsed without relying on response text."""
     response = SimpleNamespace(
@@ -52,6 +69,26 @@ def test_parse_response_accepts_provider_parsed_payload(session_factory) -> None
     assert rows == []
     assert input_tokens == EXPECTED_INPUT_TOKENS
     assert output_tokens == EXPECTED_OUTPUT_TOKENS
+
+
+def test_parse_response_rejects_provider_output_truncation(session_factory) -> None:
+    """A response cut by the provider cannot become a partial import."""
+    response = SimpleNamespace(
+        candidates=[SimpleNamespace(finish_reason="MAX_TOKENS")],
+        parsed={"transactions": []},
+    )
+
+    with session_factory() as db, pytest.raises(finance_import.OcrResponseFormatError):
+        finance_import._parse_response(response, db, 1)
+
+
+def test_rate_limit_is_separate_from_budget_limit() -> None:
+    """Hourly throttling raises a distinct controlled error."""
+    finance_import._recent_calls.clear()
+    finance_import._check_rate_limit(1, 1)
+    with pytest.raises(finance_import.OcrRateLimitError):
+        finance_import._check_rate_limit(1, 1)
+    finance_import._recent_calls.clear()
 
 
 def test_provider_failure_releases_budget_reservation(session_factory, monkeypatch) -> None:

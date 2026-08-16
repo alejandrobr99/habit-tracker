@@ -51,6 +51,7 @@ class Settings(BaseSettings):
         ge=MIN_REQUEST_BYTES,
         le=50 * 1024 * 1024,
     )
+    ocr_max_calls_per_hour: int = Field(default=20, ge=1, le=100)
 
     model_config = SettingsConfigDict(
         env_prefix="PLANNER_",

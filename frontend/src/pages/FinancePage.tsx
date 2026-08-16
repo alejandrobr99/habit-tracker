@@ -342,29 +342,32 @@ export function FinancePage() {
                 const budget = budgets.find((item) => item.category_id === category.id);
                 return (
                   <article className="finance-management-item" key={category.id}>
-                    <div className="category-item">
-                      <span className="category-dot" style={{ backgroundColor: category.color }} />
-                      <div><strong>{category.name}</strong><small>{category.type === "income" ? "Ingreso" : "Gasto"}</small></div>
-                      <CategoryDialog category={category} pending={categoryMutation.isPending} onSave={(input) => categoryMutation.mutateAsync({ id: category.id, input })}>
-                        <button className="icon-button" aria-label={`Editar ${category.name}`}><Pencil aria-hidden="true" size={17} /></button>
-                      </CategoryDialog>
-                      <ConfirmDialog title="¿Archivar categoría?" description="Se conservarán sus movimientos y presupuestos históricos." onConfirm={() => archiveCategoryMutation.mutate(category.id)}>
-                        <button className="icon-button" aria-label={`Archivar ${category.name}`}><Archive aria-hidden="true" size={17} /></button>
-                      </ConfirmDialog>
+                    <div className="finance-management-row">
+                      <div className="category-item">
+                        <span className="category-dot" style={{ backgroundColor: category.color }} />
+                        <div><strong>{category.name}</strong><small>{category.type === "income" ? "Ingreso" : "Gasto"}</small></div>
+                        <CategoryDialog category={category} pending={categoryMutation.isPending} onSave={(input) => categoryMutation.mutateAsync({ id: category.id, input })}>
+                          <button className="icon-button" type="button" aria-label={`Editar ${category.name}`}><Pencil aria-hidden="true" size={17} /></button>
+                        </CategoryDialog>
+                        <ConfirmDialog title="¿Archivar categoría?" description="Se conservarán sus movimientos y presupuestos históricos." onConfirm={() => archiveCategoryMutation.mutate(category.id)}>
+                          <button className="icon-button" type="button" aria-label={`Archivar ${category.name}`}><Archive aria-hidden="true" size={17} /></button>
+                        </ConfirmDialog>
+                      </div>
+                      {category.type === "expense" ? (
+                        <BudgetRow
+                          budgetMinor={budget?.limit_minor}
+                          category={category}
+                          currency={currency}
+                          hideCategory
+                          minorUnit={minorUnit}
+                          pending={budgetMutation.isPending}
+                          onDelete={budget ? () => deleteBudgetMutation.mutate(category.id) : undefined}
+                          onSave={(limitMinor) => budgetMutation.mutateAsync({ categoryId: category.id, limitMinor })}
+                        />
+                      ) : (
+                        <small className="finance-management-item__note">Los presupuestos aplican a categorías de gasto.</small>
+                      )}
                     </div>
-                    {category.type === "expense" ? (
-                      <BudgetRow
-                        budgetMinor={budget?.limit_minor}
-                        category={category}
-                        currency={currency}
-                        minorUnit={minorUnit}
-                        pending={budgetMutation.isPending}
-                        onDelete={budget ? () => deleteBudgetMutation.mutate(category.id) : undefined}
-                        onSave={(limitMinor) => budgetMutation.mutateAsync({ categoryId: category.id, limitMinor })}
-                      />
-                    ) : (
-                      <small className="finance-management-item__note">Los presupuestos aplican a categorías de gasto.</small>
-                    )}
                   </article>
                 );
               })}
@@ -958,6 +961,7 @@ function BudgetRow({
   budgetMinor,
   category,
   currency,
+  hideCategory = false,
   minorUnit,
   onDelete,
   onSave,
@@ -966,6 +970,7 @@ function BudgetRow({
   budgetMinor?: number;
   category: FinanceCategory;
   currency: string;
+  hideCategory?: boolean;
   minorUnit: number;
   onDelete?: () => void;
   onSave: (amount: number) => Promise<unknown>;
@@ -984,8 +989,8 @@ function BudgetRow({
     setError(false);
   }
   return (
-    <form className="budget-row" onSubmit={submit}>
-      <div><strong>{category.name}</strong><small>{budgetMinor ? formatMoney(budgetMinor, currency, minorUnit) : "Sin presupuesto"}</small></div>
+    <form className={hideCategory ? "budget-row budget-row--compact" : "budget-row"} onSubmit={submit}>
+      {!hideCategory && <div><strong>{category.name}</strong><small>{budgetMinor ? formatMoney(budgetMinor, currency, minorUnit) : "Sin presupuesto"}</small></div>}
       <label className="sr-only" htmlFor={`budget-${category.id}`}>Límite para {category.name}</label>
       <input id={`budget-${category.id}`} inputMode="decimal" placeholder="Límite" value={amount} onChange={(event) => setAmount(event.target.value)} aria-invalid={error} />
       <Button disabled={pending} variant="secondary" type="submit">{budgetMinor ? "Actualizar" : "Configurar"}</Button>

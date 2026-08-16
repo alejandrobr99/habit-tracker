@@ -48,10 +48,11 @@ FORBIDDEN_PDF_FEATURES = re.compile(
 )
 MAX_CALL_MICROUSD = 100_000
 TOKEN_TTL_SECONDS = 15 * 60
-MAX_CALLS_PER_HOUR = 5
 MAX_IMAGE_PIXELS = 20_000_000
 MAX_DESCRIPTION_LENGTH = 120
 PROVIDER_TIMEOUT_MS = 45_000
+MAX_OUTPUT_TOKENS = 32_768
+PDF_BATCH_PAGES = 3
 _recent_calls: dict[int, deque[float]] = defaultdict(deque)
 _previews: dict[
     str,
@@ -69,6 +70,10 @@ class OcrUnavailableError(OcrError):
 
 class OcrBudgetError(OcrError):
     """Raised when the per-user OCR budget cannot cover a call."""
+
+
+class OcrRateLimitError(OcrError):
+    """Raised when a user exceeds the hourly OCR analysis limit."""
 
 
 class OcrDocumentError(OcrError):
@@ -96,14 +101,37 @@ def preview_document(
 ) -> OcrPreviewRead:
     """Normalize a document, call Gemini, and retain only a temporary preview."""
     _require_available(settings)
-    _check_rate_limit(user_id)
     normalized, mime_type = _normalize_document(content, filename)
-    budget, reservation = _reserve_budget(db, user_id, settings.ocr_budget_microusd)
+    document_parts = _split_document(normalized, mime_type)
+    _check_rate_limit(user_id, settings.ocr_max_calls_per_hour, len(document_parts))
+    budget, reservation = _reserve_budget(
+        db,
+        user_id,
+        settings.ocr_budget_microusd,
+        len(document_parts),
+    )
     document_hash = hashlib.sha256(content).hexdigest()
     started_at = time.monotonic()
     try:
-        response = _call_gemini(settings.gemini_api_key.get_secret_value(), normalized, mime_type)
-        rows, input_tokens, output_tokens = _parse_response(response, db, user_id)
+        rows: list[OcrProposedTransactionRead] = []
+        input_tokens = 0
+        output_tokens = 0
+        for part, part_mime_type in document_parts:
+            response = _call_gemini(
+                settings.gemini_api_key.get_secret_value(),
+                part,
+                part_mime_type,
+            )
+            part_rows, part_input_tokens, part_output_tokens = _parse_response(
+                response,
+                db,
+                user_id,
+            )
+            rows.extend(part_rows)
+            input_tokens += part_input_tokens
+            output_tokens += part_output_tokens
+            if len(rows) > MAX_ROWS:
+                raise OcrRowLimitError
         cost = _cost_microusd(input_tokens, output_tokens)
         _settle_budget(budget, reservation, cost)
         db.commit()
@@ -243,15 +271,21 @@ def _require_available(settings: Settings) -> None:
         raise OcrUnavailableError
 
 
-def _check_rate_limit(user_id: int) -> None:
-    """Allow at most five analyses in a rolling hour."""
+def _check_rate_limit(
+    user_id: int,
+    max_calls_per_hour: int,
+    calls_requested: int = 1,
+) -> None:
+    """Allow a configured number of analyses in a rolling hour."""
+    if calls_requested < 1:
+        raise ValueError
     now = time.monotonic()
     calls = _recent_calls[user_id]
     while calls and calls[0] <= now - 3600:
         calls.popleft()
-    if len(calls) >= MAX_CALLS_PER_HOUR:
-        raise OcrBudgetError
-    calls.append(now)
+    if len(calls) + calls_requested > max_calls_per_hour:
+        raise OcrRateLimitError
+    calls.extend([now] * calls_requested)
 
 
 def _normalize_document(content: bytes, filename: str) -> tuple[bytes, str]:
@@ -283,6 +317,28 @@ def _normalize_document(content: bytes, filename: str) -> tuple[bytes, str]:
         except (pymupdf.FileDataError, ValueError) as error:
             raise OcrDocumentError from error
     raise OcrDocumentError
+
+
+def _split_document(content: bytes, mime_type: str) -> list[tuple[bytes, str]]:
+    """Split PDFs into bounded page batches before structured extraction."""
+    if mime_type != "application/pdf":
+        return [(content, mime_type)]
+    try:
+        source = pymupdf.open(stream=content, filetype="pdf")
+        parts = []
+        for start_page in range(0, source.page_count, PDF_BATCH_PAGES):
+            batch = pymupdf.open()
+            batch.insert_pdf(
+                source,
+                from_page=start_page,
+                to_page=min(start_page + PDF_BATCH_PAGES, source.page_count) - 1,
+            )
+            parts.append((batch.tobytes(garbage=4, deflate=True, clean=True), mime_type))
+            batch.close()
+        source.close()
+        return parts
+    except (pymupdf.FileDataError, ValueError) as error:
+        raise OcrDocumentError from error
 
 
 def _call_gemini(api_key: str, content: bytes, mime_type: str) -> Any:  # noqa: ANN401
@@ -337,6 +393,9 @@ def _call_gemini(api_key: str, content: bytes, mime_type: str) -> Any:  # noqa: 
         "Este es un extracto de tarjeta: cada fila del detalle es un gasto, por lo que type debe "
         "ser exactamente expense. confidence debe ser exactamente high, medium o low; nunca uses "
         "otros valores. No conviertas encabezados, resúmenes ni saldos en transacciones. "
+        "Recorre todas las páginas y no detengas la extracción después de la primera página; "
+        "la respuesta debe incluir todas las filas legibles del detalle hasta el final del "
+        "documento. "
         "Para sugerir categorías, usa exactamente el nombre de una categoría existente cuando "
         "coincida. Como regla de clasificación: comercios o cargos de Rappi son "
         "domicilio; cargos de Uber, Cabify o DiDi son transporte, salvo que la descripción "
@@ -352,7 +411,7 @@ def _call_gemini(api_key: str, content: bytes, mime_type: str) -> Any:  # noqa: 
             response_mime_type="application/json",
             response_schema=schema,
             temperature=0,
-            max_output_tokens=8_000,
+            max_output_tokens=MAX_OUTPUT_TOKENS,
         ),
     )
 
@@ -380,6 +439,8 @@ def _parse_response(  # noqa: C901
     user_id: int,
 ) -> tuple[list[OcrProposedTransactionRead], int, int]:
     """Validate structured provider output and map only exact category names."""
+    if _response_reached_output_limit(response):
+        raise OcrResponseFormatError
     try:
         raw = _response_payload(response)
         items = raw["transactions"]
@@ -451,6 +512,15 @@ def _parse_response(  # noqa: C901
     return rows, input_tokens, output_tokens
 
 
+def _response_reached_output_limit(response: Any) -> bool:  # noqa: ANN401
+    """Detect provider truncation before accepting a partial structured response."""
+    candidates = getattr(response, "candidates", None)
+    if not candidates:
+        return False
+    finish_reason = getattr(candidates[0], "finish_reason", None)
+    return str(finish_reason).upper().endswith("MAX_TOKENS")
+
+
 def _get_or_create_budget(db: Session, user_id: int, configured_budget: int) -> OcrBudget:
     """Load or initialize the per-user budget."""
     budget = db.scalar(select(OcrBudget).where(OcrBudget.user_id == user_id))
@@ -466,17 +536,18 @@ def _reserve_budget(
     db: Session,
     user_id: int,
     configured_budget: int,
+    calls_requested: int = 1,
 ) -> tuple[OcrBudget, int]:
-    """Reserve a bounded worst-case call cost before external processing."""
+    """Reserve bounded worst-case costs before external processing."""
+    if calls_requested < 1:
+        raise ValueError
     budget = _get_or_create_budget(db, user_id, configured_budget or OCR_BUDGET_MICROUSD)
-    if (
-        budget.budget_microusd - budget.reserved_microusd - budget.spent_microusd
-        < MAX_CALL_MICROUSD
-    ):
+    reservation = MAX_CALL_MICROUSD * calls_requested
+    if budget.budget_microusd - budget.reserved_microusd - budget.spent_microusd < reservation:
         raise OcrBudgetError
-    budget.reserved_microusd += MAX_CALL_MICROUSD
+    budget.reserved_microusd += reservation
     db.commit()
-    return budget, MAX_CALL_MICROUSD
+    return budget, reservation
 
 
 def _settle_budget(budget: OcrBudget, reservation: int, actual: int) -> None:

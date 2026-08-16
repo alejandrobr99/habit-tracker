@@ -134,6 +134,8 @@ hash de propuesta en memoria del proceso. El archivo nunca se vuelve descargable
   categoría.
 - **Sin propuestas válidas:** explica que se puede cancelar y probar otro documento.
 - **Presupuesto agotado:** no ofrece reintentar.
+- **Límite horario:** informa que se alcanzó el límite temporal de análisis y responde `429`;
+  no se presenta como presupuesto agotado.
 - **Proveedor no configurado:** instrucción de administración, sin detalle de configuración interna.
 - **Proveedor temporalmente no disponible:** ofrece reintentar más tarde y libera la reserva interna.
 - **Confirmando:** bloquea solo la revisión actual.
@@ -153,6 +155,8 @@ restante. El desglose lista categorías de gasto con importe y proporción textu
 - Una respuesta fuera del esquema o con datos inválidos se descarta de forma controlada.
 - Un fallo temporal del proveedor responde `503`, no consume presupuesto interno y no se presenta
   como un documento o una respuesta inválidos.
+- El límite horario responde `429` y el presupuesto interno agotado responde `409`, con mensajes
+  diferenciados.
 - Una propuesta no crea movimientos antes de la confirmación explícita.
 - La tabla siempre permite editar fecha, descripción, valor y categoría.
 - Una persona puede eliminar una fila propuesta antes de confirmar; las filas eliminadas no se guardan.

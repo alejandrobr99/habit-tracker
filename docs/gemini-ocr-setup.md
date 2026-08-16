@@ -57,6 +57,7 @@ Copia `backend/environment.example` a `backend/.env` y añade:
 GEMINI_API_KEY=pon_aqui_la_clave_sin_comillas
 PLANNER_OCR_ENABLED=true
 PLANNER_OCR_BUDGET_MICROUSD=10000000
+PLANNER_OCR_MAX_CALLS_PER_HOUR=20
 ```
 
 No uses una imagen o extracto real para la primera prueba. Usa un documento sintético que no contenga
@@ -70,6 +71,7 @@ En **Variables** del servicio configura la clave como secreto:
 GEMINI_API_KEY=<valor secreto>
 PLANNER_OCR_ENABLED=true
 PLANNER_OCR_BUDGET_MICROUSD=10000000
+PLANNER_OCR_MAX_CALLS_PER_HOUR=20
 ```
 
 No añadas la clave a `railpack.json`, `railway.json`, `README.md` ni a variables `VITE_`. Mantén una
@@ -95,7 +97,9 @@ abuso, seguridad u obligaciones legales. Por ello:
 
 ## Contención del gasto
 
-La aplicación rechaza nuevos análisis cuando el presupuesto interno se agota. No hay reintentos
+La aplicación rechaza nuevos análisis cuando el presupuesto interno se agota y limita a 20 análisis
+por usuario cada hora, configurable mediante `PLANNER_OCR_MAX_CALLS_PER_HOUR`. El presupuesto y el
+límite horario son controles diferentes y la interfaz muestra mensajes distintos. No hay reintentos
 automáticos. Los fallos antes de llamar al proveedor no consumen presupuesto. Ante una respuesta de
 red incierta se conserva la reserva para evitar volver a gastar sin saber si la primera llamada tuvo
 éxito.

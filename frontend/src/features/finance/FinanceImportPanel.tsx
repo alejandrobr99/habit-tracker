@@ -53,13 +53,15 @@ export function FinanceImportPanel({
       setPreview(result);
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
-        setStatus("El presupuesto o el límite de análisis no está disponible.");
+        setStatus("El presupuesto interno de análisis no está disponible.");
+      } else if (error instanceof ApiError && error.status === 429) {
+        setStatus("Alcanzaste el límite horario de análisis. Inténtalo más tarde.");
       } else if (error instanceof ApiError && error.status === 503) {
-        setStatus("El servicio OCR está temporalmente no disponible. Inténtalo de nuevo.");
+        setStatus("El analizador automático está temporalmente no disponible. Inténtalo de nuevo.");
       } else if (error instanceof ApiError && error.status === 422) {
         setStatus(error.message);
       } else {
-        setStatus("No pudimos interpretar la respuesta del OCR. Inténtalo de nuevo.");
+        setStatus("No pudimos interpretar la respuesta del analizador automático. Inténtalo de nuevo.");
       }
     } finally {
       setBusy(false);
@@ -139,7 +141,7 @@ export function FinanceImportPanel({
     <section className="planner-section finance-import" aria-label="Importar documento financiero">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Registro automático</span>
+          <span className="eyebrow">Analizador automático de imágenes y documentos</span>
           <h2>Importar recibo o extracto</h2>
         </div>
         {!preview && (
@@ -158,7 +160,7 @@ export function FinanceImportPanel({
       </div>
       <p className="field-help finance-import__instructions">
         Se envía una copia temporal a Google Gemini. Usa JPEG, PNG o PDF de hasta 10 MiB. Revisa cada
-        fila: el OCR nunca guarda movimientos automáticamente.
+        fila: el analizador nunca guarda movimientos automáticamente.
       </p>
       {status && <p className="inline-error" role="status">{status}</p>}
       {preview && (

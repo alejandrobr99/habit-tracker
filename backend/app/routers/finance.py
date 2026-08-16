@@ -367,6 +367,11 @@ async def preview_import(
         )
     except finance_import_service.OcrUnavailableError as error:
         raise HTTPException(503, "La importación OCR no está disponible.") from error
+    except finance_import_service.OcrRateLimitError as error:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Alcanzaste el límite horario de análisis. Inténtalo más tarde.",
+        ) from error
     except finance_import_service.OcrBudgetError as error:
         raise _conflict("El presupuesto o el límite de análisis no está disponible.") from error
     except finance_import_service.OcrDocumentError as error:
@@ -440,14 +445,16 @@ def _build_transactions_workbook(
     for transaction in transactions:
         amount = Decimal(transaction.amount_minor) / (Decimal(10) ** settings.minor_unit)
         rounded_amount = amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-        worksheet.append([
-            transaction.date.isoformat(),
-            "Ingreso" if transaction.type.value == "income" else "Gasto",
-            transaction.description,
-            categories.get(transaction.category_id, "Categoría archivada"),
-            f"{rounded_amount:.0f}",
-            settings.base_currency,
-        ])
+        worksheet.append(
+            [
+                transaction.date.isoformat(),
+                "Ingreso" if transaction.type.value == "income" else "Gasto",
+                transaction.description,
+                categories.get(transaction.category_id, "Categoría archivada"),
+                f"{rounded_amount:.0f}",
+                settings.base_currency,
+            ],
+        )
     worksheet.freeze_panes = "A2"
     worksheet.auto_filter.ref = worksheet.dimensions
     for column, width in {"A": 14, "B": 12, "C": 32, "D": 24, "E": 18, "F": 10}.items():
