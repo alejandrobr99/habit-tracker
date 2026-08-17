@@ -257,6 +257,8 @@ en `specs/007-finance-document-import.md`.
 - Las respuestas de la API llevan `Cache-Control: no-store`.
 - La política de contenido no contiene `unsafe-inline` ni `unsafe-eval`.
 - La construcción del frontend no emite script ni estilo en línea.
+- El campo de contraseña del acceso permite alternar visibilidad localmente sin modificar el valor
+  enviado ni registrar la credencial.
 - Seis cambios de contraseña fallidos para una cuenta producen `429`.
 - Una contraseña igual al username, contenida en él, frecuente o de menos de cinco caracteres
   distintos responde `422` en cambio, creación y restablecimiento.

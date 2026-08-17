@@ -4094,6 +4094,39 @@ h3 {
   margin-top: 0.35rem;
 }
 
+.password-input {
+  position: relative;
+}
+
+.password-input input {
+  padding-right: 3.25rem;
+}
+
+.password-input__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-soft);
+  transform: translateY(-50%);
+}
+
+.password-input__toggle:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.password-input__toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
 .auth-message {
   margin-top: 1.25rem;
   padding: 1rem 1.1rem;

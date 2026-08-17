@@ -33,7 +33,13 @@ describe("sesión y rutas privadas", () => {
     renderApplication("/acceso");
 
     await user.type(await screen.findByLabelText("Usuario"), "admin");
-    await user.type(screen.getByLabelText("Contraseña"), "temporal-segura");
+    const password = screen.getByLabelText("Contraseña");
+    await user.type(password, "temporal-segura");
+    expect(password).toHaveAttribute("type", "password");
+    await user.click(screen.getByRole("button", { name: "Mostrar contraseña" }));
+    expect(password).toHaveAttribute("type", "text");
+    await user.click(screen.getByRole("button", { name: "Ocultar contraseña" }));
+    expect(password).toHaveAttribute("type", "password");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
     expect(

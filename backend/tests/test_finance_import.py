@@ -18,6 +18,7 @@ EXPECTED_INPUT_TOKENS = 10
 EXPECTED_OUTPUT_TOKENS = 5
 EXPECTED_BATCH_COUNT = 2
 PROVIDER_UNAVAILABLE_STATUS = 503
+COP_MINOR_UNIT = 2
 
 
 def test_normalize_image_reencodes_without_original_metadata() -> None:
@@ -64,11 +65,36 @@ def test_parse_response_accepts_provider_parsed_payload(session_factory) -> None
     )
 
     with session_factory() as db:
+        db.add(FinanceSettings(user_id=1, base_currency="COP", minor_unit=COP_MINOR_UNIT))
+        db.commit()
         rows, input_tokens, output_tokens = finance_import._parse_response(response, db, 1)
 
     assert rows == []
     assert input_tokens == EXPECTED_INPUT_TOKENS
     assert output_tokens == EXPECTED_OUTPUT_TOKENS
+
+
+@pytest.mark.parametrize(
+    ("printed", "expected"),
+    [
+        ("$6,100", 610_000),
+        ("$8,605,984", 860_598_400),
+        ("1.234.567,89", 123_456_789),
+        ("1,234,567.89", 123_456_789),
+        ("6100", 610_000),
+    ],
+)
+def test_parse_printed_amount_supports_thousands_and_decimals(
+    printed: str,
+    expected: int,
+) -> None:
+    """Printed separators are interpreted by shape rather than locale."""
+    assert finance_import._parse_printed_amount(printed, COP_MINOR_UNIT) == expected
+
+
+def test_parse_printed_amount_rejects_ambiguous_separator() -> None:
+    """A separator with an unsupported group size requires human review."""
+    assert finance_import._parse_printed_amount("61,0", COP_MINOR_UNIT) is None
 
 
 def test_parse_response_rejects_provider_output_truncation(session_factory) -> None:
@@ -106,6 +132,8 @@ def test_provider_failure_releases_budget_reservation(session_factory, monkeypat
     settings = Settings(GEMINI_API_KEY="test-key", ocr_enabled=True)
 
     with session_factory() as db:
+        db.add(FinanceSettings(user_id=1, base_currency="COP", minor_unit=COP_MINOR_UNIT))
+        db.commit()
         with pytest.raises(finance_import.OcrUnavailableError):
             finance_import.preview_document(
                 db,

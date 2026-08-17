@@ -1,4 +1,4 @@
-import { Sprout } from "lucide-react";
+import { Eye, EyeOff, Sprout } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -11,6 +11,7 @@ export function LoginPage() {
   const { login, notice, retry, status } = useSession();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -78,15 +79,26 @@ export function LoginPage() {
           </div>
           <div className="field">
             <label htmlFor="password">Contraseña</label>
-            <input
-              autoComplete="current-password"
-              id="password"
-              maxLength={128}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              type="password"
-              value={password}
-            />
+            <div className="password-input">
+              <input
+                autoComplete="current-password"
+                id="password"
+                maxLength={128}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                type={showPassword ? "text" : "password"}
+                value={password}
+              />
+              <button
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-pressed={showPassword}
+                className="password-input__toggle"
+                onClick={() => setShowPassword((current) => !current)}
+                type="button"
+              >
+                {showPassword ? <EyeOff aria-hidden="true" size={19} /> : <Eye aria-hidden="true" size={19} />}
+              </button>
+            </div>
           </div>
           {error ? (
             <p className="form-error" role="alert">

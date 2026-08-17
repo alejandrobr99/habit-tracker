@@ -85,7 +85,7 @@ No se persiste. Vive únicamente en la respuesta de previsualización y en el es
 | --- | --- | --- |
 | `row_id` | string | Identificador opaco generado por el servidor |
 | `type` | enum | `income` o `expense` |
-| `amount_minor` | integer o null | Positivo tras validar |
+| `amount_minor` | integer o null | Positivo tras interpretar el texto monetario con la moneda base |
 | `date` | date o null | Fecha civil válida |
 | `description` | string o null | 1 a 120 caracteres |
 | `category_id` | integer o null | Categoría activa del usuario |
@@ -119,6 +119,10 @@ hash de propuesta en memoria del proceso. El archivo nunca se vuelve descargable
   El modelo no recibe herramientas, secretos, identificadores internos ni datos de otras cuentas.
 - La salida se valida con JSON Schema y después con las reglas manuales. No se repara una respuesta
   fuera de esquema con heurísticas.
+- El proveedor devuelve el importe tal como aparece impreso. El backend interpreta separadores de
+  miles y decimales según su estructura y la moneda base: dos cifras finales pueden ser decimales;
+  tres cifras finales son agrupación de miles. Para COP, un resultado inferior a 1.000 se marca para
+  revisión humana en lugar de aceptarse silenciosamente.
 - La interfaz informa que el documento sale de la instancia. En el plan pagado, Google no usa prompts,
   archivos ni respuestas para mejorar productos, pero puede conservarlos temporalmente para seguridad
   u obligaciones legales.
@@ -153,6 +157,8 @@ restante. El desglose lista categorías de gasto con importe y proporción textu
 - El proveedor nunca se llama si la firma, estructura, tamaño o presupuesto son inválidos.
 - La clave nunca aparece en respuestas, código generado del frontend o logs.
 - Una respuesta fuera del esquema o con datos inválidos se descarta de forma controlada.
+- `$6,100` en COP se propone como 6.100 pesos, no como 61; formatos equivalentes con punto o coma se
+  interpretan sin usar `float`.
 - Un fallo temporal del proveedor responde `503`, no consume presupuesto interno y no se presenta
   como un documento o una respuesta inválidos.
 - El límite horario responde `429` y el presupuesto interno agotado responde `409`, con mensajes
