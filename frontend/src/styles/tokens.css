@@ -7,6 +7,12 @@
   --font-size-label: clamp(1.125rem, 0.24vw + 1.05rem, 1.3rem);
   --font-size-nav: clamp(1.25rem, 0.3vw + 1.15rem, 1.45rem);
   --font-size-title: clamp(3.75rem, 5.3vw, 6.25rem);
+  --text-xs: clamp(0.875rem, 0.1vw + 0.84rem, 0.95rem);
+  --text-sm: clamp(1rem, 0.16vw + 0.95rem, 1.125rem);
+  --text-md: clamp(1.125rem, 0.2vw + 1.05rem, 1.25rem);
+  --text-lg: clamp(1.45rem, 0.45vw + 1.25rem, 1.8rem);
+  --text-xl: clamp(2rem, 2vw + 1.2rem, 3.4rem);
+  --text-display: clamp(3.4rem, 7vw, 7rem);
   --sidebar-width: clamp(20rem, 23vw, 24rem);
   --content-max: 100rem;
   --control-height: 3.75rem;
@@ -16,6 +22,7 @@
   --ink-faint: #696d67;
   --paper: #efeee9;
   --surface: #f9f8f4;
+  --surface-raised: #ffffff;
   --surface-muted: #e7e6e0;
   --border: #cbc8bf;
   --border-strong: #aaa99f;
@@ -50,8 +57,12 @@
   --motion-emphasis: 320ms;
   --motion-celebration: 600ms;
   --motion-spectacle: 1200ms;
-  --motion-spectacle: 1200ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --surface-glass: rgb(249 248 244 / 78%);
+  --surface-glass-strong: rgb(249 248 244 / 94%);
+  --border-soft: rgb(170 169 159 / 58%);
+  --focus-ring: 0 0 0 3px rgb(49 90 115 / 22%);
+  --shadow-lift: 0 16px 36px rgb(53 59 50 / 10%);
   --transition: var(--motion-state) var(--ease-out);
 }

@@ -6,6 +6,25 @@ La interfaz debe sentirse espectacular pero elegante, orgánica y cercana: una h
 que celebra sin competir por atención. La calidez procede de fondos minerales, tipografía cuidada,
 acentos terrosos y formas botánicas abstractas. Se evita la estética genérica de panel SaaS.
 
+### Evolución visual 2026
+
+La interfaz adopta una presencia más audaz y contemporánea mediante contraste editorial, bloques de
+acción de mayor presencia, profundidad por capas y una composición asimétrica controlada. Audaz no
+significa ilegible: la tarea primaria conserva el foco, las métricas se agrupan por contexto y los
+motivos decorativos permanecen detrás del contenido. Se permite una atmósfera animada de fondo y
+transiciones más expresivas para que la interfaz se sienta viva; nunca deben ocultar información ni
+retrasar una acción.
+
+- La superficie principal usa piedra cálida y una capa elevada clara; los acentos verdes, arcilla y
+  dorado expresan jerarquía, no decoración indiscriminada.
+- Los títulos y cifras importantes pueden crecer con una escala fluida; el cuerpo permanece entre
+  17 y 20 px y los textos largos conservan una medida legible. La interfaz usa una escala
+  tipográfica compartida para evitar saltos arbitrarios entre componentes.
+- Cada vista tiene una acción primaria reconocible y un bloque de contexto inicial; no se añaden
+  mosaicos ni controles ficticios para llenar espacio.
+- Los paneles de captura, lectura y administración se distinguen por composición y encabezado,
+  no por una acumulación de tarjetas anidadas.
+
 ## Principios
 
 1. **Serenidad viva:** pocos niveles simultáneos, aire suficiente y movimiento con propósito.
@@ -198,6 +217,21 @@ ni iconos rellenos de estilos mezclados.
 - Con movimiento reducido, sustituir desplazamiento, escala y partículas por cambio estático de
   borde, color, símbolo y texto.
 
+### Estados de interacción del revamp
+
+- Las páginas entran con una transición visible de opacidad, desplazamiento vertical y una ligera
+  expansión; el contenido permanece disponible inmediatamente.
+- Los botones, enlaces, navegación y controles de check-in muestran respuesta presionada en
+  `motion-instant` sin modificar el espacio reservado.
+- Los bloques de progreso pueden enfatizarse una vez al recibir datos con un pulso de borde o halo.
+- El shell puede mostrar hasta dos capas de movimiento atmosférico continuo, lento y de baja
+  amplitud. Estas capas son ornamentales, no comunican estados y desaparecen con movimiento
+  reducido.
+- La carga conserva la altura aproximada del contenido para evitar saltos y comunica su estado con
+  texto o `aria-busy`.
+- El foco usa el token `focus`, un anillo visible y `outline-offset`; nunca depende únicamente del
+  cambio de color.
+
 ## Estados y accesibilidad
 
 Todo componente interactivo define: reposo, hover, foco, activo, deshabilitado, carga y error
@@ -212,7 +246,7 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
 - El layout funciona a 320, 768, 1024 y 1440 px.
 - Teclado y foco permiten completar todos los flujos.
 - La interfaz sigue siendo comprensible en escala de grises.
-- `prefers-reduced-motion` elimina el movimiento no esencial.
+- `prefers-reduced-motion` elimina el movimiento no esencial, incluidos los fondos atmosféricos.
 - La tipografía, navegación y espaciado escalan sin saltos entre 320 y 1440 px.
 - La marca, los destinos principales y el destino activo siguen siendo legibles en todos los
   tamaños soportados.
@@ -220,6 +254,10 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
 - Rachas, XP, insignias y finanzas usan lenguaje neutral y siguen siendo comprensibles sin color.
 - No aparecen negro puro, emojis, neón ni patrones de panel genérico; los lavados decorativos
   conservan contraste y no comunican estado.
+- El shell, la autenticación y las cinco vistas funcionales comparten primitives de botones, campos,
+  encabezados, estados y diálogos sin alterar endpoints ni reglas de dominio.
+- Las vistas se pueden recorrer a 320, 768, 1024 y 1440 px sin desplazamiento horizontal y con
+  controles táctiles de al menos 48 × 48 px.
 
 ## Decisiones registradas
 
@@ -250,3 +288,9 @@ dinámicos importantes se anuncian. Objetivo WCAG 2.2 AA.
   escala para orientar la acción sin temporizadores ni señales destructivas.
 - **D-DS-16:** representar el porcentaje diario del calendario con un gradiente continuo entre
   `surface` y `accent`, acompañado siempre por texto y estados accesibles.
+- **D-DS-17:** evolucionar la presencia visual hacia una composición editorial audaz y contemporánea,
+  usando profundidad por capas y asimetría controlada sin sacrificar serenidad ni legibilidad.
+- **D-DS-18:** usar una escala tipográfica compartida de seis niveles para dar presencia y legibilidad
+  sin saltos arbitrarios entre elementos.
+- **D-DS-19:** permitir fondos atmosféricos animados lentos y motion de entrada más expresiva como
+  ornamentación opcional, siempre reducida o eliminada con `prefers-reduced-motion`.

@@ -16,8 +16,9 @@ skill define cómo se expresa visualmente un cambio real.
 
 ## Resultado buscado
 
-La experiencia se siente espectacular pero elegante, orgánica y calmada. El deleite refuerza
-comprensión, competencia y continuidad; nunca secuestra atención ni convierte la interfaz en premio.
+La experiencia se siente espectacular, expresiva y orgánica, sin perder legibilidad. El deleite
+refuerza comprensión, competencia y continuidad; puede ocupar más presencia visual cuando el usuario
+lo solicite, pero nunca oculta información ni bloquea la siguiente acción.
 
 ## Flujo de trabajo
 
@@ -75,7 +76,8 @@ movimiento reducido.
 - Anima `opacity` y `transform`; evita propiedades que recalculen layout.
 - Empieza rápido y termina con suavidad mediante easing de salida.
 - Mantén las partículas cerca del origen y limita cada secuencia a una ejecución.
-- Evita rebote repetitivo, parallax, giros, destellos, estrobo y autoplay.
+- Evita rebote repetitivo, parallax, giros, destellos, estrobo y autoplay. Sí se permiten fondos
+  atmosféricos lentos de baja amplitud y entradas expresivas si no transmiten estado.
 - No retrases una mutación, navegación o siguiente check-in para mostrar una animación.
 - Si una interacción se repite muchas veces, reduce la amplitud antes que aumentar duración.
 
@@ -84,6 +86,7 @@ movimiento reducido.
 Con `prefers-reduced-motion: reduce`:
 
 - elimina partículas, desplazamiento, giro y escala;
+- detiene los fondos atmosféricos y las transiciones de entrada;
 - conserva texto, marca, borde y cambio de color;
 - no ocultes información que en modo normal aparece durante la animación;
 - no reemplaces una celebración por silencio: muestra una confirmación estática.
